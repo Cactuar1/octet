@@ -194,11 +194,21 @@ namespace octet {
     // sounds
     ALuint whoosh;
     ALuint bang;
+
+	ALuint enemy_hit;
+	ALuint enemy_shoot;
+
+	ALuint player_shoot;
+	ALuint player_hurt;
+	ALuint player_dead;
+
+	//
 	ALuint music;
+	//
     unsigned cur_source;
     ALuint sources[num_sound_sources];
 	unsigned cur_music_source;
-	ALuint sources[num_music_sound_source];
+	ALuint sources2[num_music_sound_source];
 	//
 
     // big array of sprites
@@ -214,7 +224,7 @@ namespace octet {
     bitmap_font font;
 
 	ALuint get_sound_source() { return sources[cur_source++ % num_sound_sources]; }
-	ALuint get_music_source() { return sources[cur_music_source++ % num_music_sound_source]; }
+	ALuint get_music_source() { return sources2[0]; }
 
     // called when we hit an enemy
     void on_hit_invaderer() {
@@ -237,7 +247,7 @@ namespace octet {
     // called when we are hit
     void on_hit_ship() {
       ALuint source = get_sound_source();
-      alSourcei(source, AL_BUFFER, bang);
+      alSourcei(source, AL_BUFFER, player_hurt);
       alSourcePlay(source);
 
       if (--num_lives == 0) {
@@ -278,7 +288,7 @@ namespace octet {
 			//TIMER INBETWEEN PLAYER SHOTS!!!
             missiles_disabled = 1;
             ALuint source = get_sound_source();
-            alSourcei(source, AL_BUFFER, whoosh);
+            alSourcei(source, AL_BUFFER, player_shoot);
             alSourcePlay(source);
             break;
           }
@@ -305,7 +315,7 @@ namespace octet {
 				//sprites[first_bomb_sprite + i].bomb_Xspeed = invader_velocity;
                 bombs_disabled = 30;
                 ALuint source = get_sound_source();
-                alSourcei(source, AL_BUFFER, whoosh);
+                alSourcei(source, AL_BUFFER, enemy_shoot);
                 alSourcePlay(source);
                 return;
               }
@@ -488,22 +498,28 @@ namespace octet {
       bang = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/bang.wav");
 	  music = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/music.wav");
 
+	  player_shoot = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/player_shoot.wav");
+
       cur_source = 0;
       alGenSources(num_sound_sources, sources);
+	  alGenSources(num_music_sound_source, sources2);
 
       // sundry counters and game state.
       missiles_disabled = 0;
-      bombs_disabled = 50;
+      bombs_disabled = 50;		//5 seconds before enemies can shoot
       invader_velocity = 0.01f;
       live_invaderers = num_invaderers;
       num_lives = 3;
       game_over = false;
       score = 0;
 
-	  /*ALuint source = get_sound_source();
-	  alSourcei(source, AL_BUFFER, music);
-	  alSourcePlay(source);
-	  */
+	  
+	  ALuint source2 = get_music_source();
+	  //ASK HOW TO MAKE IT LOOP!!!
+	  alSourcei(source2, AL_BUFFER, music);
+	  alSourcePlay(source2);
+	  
+	  
 
     }
 
