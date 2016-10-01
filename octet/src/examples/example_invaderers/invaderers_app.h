@@ -33,6 +33,7 @@ namespace octet {
 
     // true if this sprite is enabled.
     bool enabled;
+
   public:
     sprite() {
       texture = 0;
@@ -144,14 +145,16 @@ namespace octet {
     // shader to draw a textured triangle
     texture_shader texture_shader_;
 
-    enum {
-      num_sound_sources = 8,
-      num_rows = 5,
-      num_cols = 10,
-      num_missiles = 2,
-      num_bombs = 2,
-      num_borders = 4,
-      num_invaderers = num_rows * num_cols,
+	enum {
+		num_music_sound_source = 1,
+		num_sound_sources = 8,
+		num_rows = 4,
+		num_cols = 10,
+		num_missiles = 40,
+		num_bombs = 2,
+		num_borders = 4,
+		num_invaderers = num_rows * num_cols,
+		camera_shake = 0,
 
       // sprite definitions
       ship_sprite = 0,
@@ -191,8 +194,12 @@ namespace octet {
     // sounds
     ALuint whoosh;
     ALuint bang;
+	ALuint music;
     unsigned cur_source;
     ALuint sources[num_sound_sources];
+	unsigned cur_music_source;
+	ALuint sources[num_music_sound_source];
+	//
 
     // big array of sprites
     sprite sprites[num_sprites];
@@ -206,7 +213,8 @@ namespace octet {
     // information for our text
     bitmap_font font;
 
-    ALuint get_sound_source() { return sources[cur_source++ % num_sound_sources]; }
+	ALuint get_sound_source() { return sources[cur_source++ % num_sound_sources]; }
+	ALuint get_music_source() { return sources[cur_music_source++ % num_music_sound_source]; }
 
     // called when we hit an enemy
     void on_hit_invaderer() {
@@ -216,9 +224,11 @@ namespace octet {
 
       live_invaderers--;
       score++;
-      if (live_invaderers == 4) {
-        invader_velocity *= 4;
-      } else if (live_invaderers == 0) {
+      
+        invader_velocity *= 1.05f;
+      
+	   if (live_invaderers == 0)
+	  {
         game_over = true;
         sprites[game_over_sprite].translate(-20, 0);
       }
@@ -243,6 +253,8 @@ namespace octet {
       if (is_key_down(key_left)) {
         sprites[ship_sprite].translate(-ship_speed, 0);
         if (sprites[ship_sprite].collides_with(sprites[first_border_sprite+2])) {
+
+			//completely negates previous movement code... cheeky!
           sprites[ship_sprite].translate(+ship_speed, 0);
         }
       } else if (is_key_down(key_right)) {
@@ -263,7 +275,8 @@ namespace octet {
           if (!sprites[first_missile_sprite+i].is_enabled()) {
             sprites[first_missile_sprite+i].set_relative(sprites[ship_sprite], 0, 0.5f);
             sprites[first_missile_sprite+i].is_enabled() = true;
-            missiles_disabled = 5;
+			//TIMER INBETWEEN PLAYER SHOTS!!!
+            missiles_disabled = 1;
             ALuint source = get_sound_source();
             alSourcei(source, AL_BUFFER, whoosh);
             alSourcePlay(source);
@@ -280,6 +293,7 @@ namespace octet {
       } else {
         // find an invaderer
         sprite &ship = sprites[ship_sprite];
+		float xVel = invader_velocity;
         for (int j = randomizer.get(0, num_invaderers); j < num_invaderers; ++j) {
           sprite &invaderer = sprites[first_invaderer_sprite+j];
           if (invaderer.is_enabled() && invaderer.is_above(ship, 0.3f)) {
@@ -288,6 +302,7 @@ namespace octet {
               if (!sprites[first_bomb_sprite+i].is_enabled()) {
                 sprites[first_bomb_sprite+i].set_relative(invaderer, 0, -0.25f);
                 sprites[first_bomb_sprite+i].is_enabled() = true;
+				//sprites[first_bomb_sprite + i].bomb_Xspeed = invader_velocity;
                 bombs_disabled = 30;
                 ALuint source = get_sound_source();
                 alSourcei(source, AL_BUFFER, whoosh);
@@ -329,6 +344,7 @@ namespace octet {
       }
     }
 
+	//shiggy
     // animate the bombs
     void move_bombs() {
       const float bomb_speed = 0.2f;
@@ -415,6 +431,9 @@ namespace octet {
 
     // this is called once OpenGL is initialized
     void app_init() {
+
+		
+
       // set up the shader
       texture_shader_.init();
 
@@ -430,7 +449,7 @@ namespace octet {
       GLuint GameOver = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/GameOver.gif");
       sprites[game_over_sprite].init(GameOver, 20, 0, 3, 1.5f);
 
-      GLuint invaderer = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/invaderer.gif");
+      GLuint invaderer = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/invaderer3.gif");
       for (int j = 0; j != num_rows; ++j) {
         for (int i = 0; i != num_cols; ++i) {
           assert(first_invaderer_sprite + i + j*num_cols <= last_invaderer_sprite);
@@ -439,6 +458,7 @@ namespace octet {
           );
         }
       }
+
 
       // set the border to white for clarity
       GLuint white = resource_dict::get_texture_handle(GL_RGB, "#ffffff");
@@ -466,6 +486,8 @@ namespace octet {
       // sounds
       whoosh = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/whoosh.wav");
       bang = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/bang.wav");
+	  music = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/music.wav");
+
       cur_source = 0;
       alGenSources(num_sound_sources, sources);
 
@@ -477,6 +499,12 @@ namespace octet {
       num_lives = 3;
       game_over = false;
       score = 0;
+
+	  /*ALuint source = get_sound_source();
+	  alSourcei(source, AL_BUFFER, music);
+	  alSourcePlay(source);
+	  */
+
     }
 
     // called every frame to move things
