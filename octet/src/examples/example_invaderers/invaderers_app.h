@@ -229,11 +229,13 @@ namespace octet {
     // called when we hit an enemy
     void on_hit_invaderer() {
       ALuint source = get_sound_source();
-      alSourcei(source, AL_BUFFER, bang);
+      alSourcei(source, AL_BUFFER, enemy_hit);
       alSourcePlay(source);
 
       live_invaderers--;
       score++;
+	  int randInt = rand() % 10 + 1;
+	  
       
         invader_velocity *= 1.05f;
       
@@ -276,13 +278,19 @@ namespace octet {
     }
 
     // fire button (space)
-    void fire_missiles() {
-      if (missiles_disabled) {
+    void fire_missiles() 
+	{
+      if (missiles_disabled) 
+	  {
         --missiles_disabled;
-      } else if (is_key_going_down(' ')) {
+      } 
+	  else if (is_key_going_down(' '))
+	  {
         // find a missile
-        for (int i = 0; i != num_missiles; ++i) {
-          if (!sprites[first_missile_sprite+i].is_enabled()) {
+        for (int i = 0; i != num_missiles; ++i)
+		{
+          if (!sprites[first_missile_sprite+i].is_enabled())
+		  {
             sprites[first_missile_sprite+i].set_relative(sprites[ship_sprite], 0, 0.5f);
             sprites[first_missile_sprite+i].is_enabled() = true;
 			//TIMER INBETWEEN PLAYER SHOTS!!!
@@ -294,6 +302,18 @@ namespace octet {
           }
         }
       }
+	  if (camera_shake == 0)
+	  {
+		  cameraToWorld.translate(0,0, 0);
+
+
+		  vec4 &cpos = cameraToWorld.w();
+
+
+		  //cameraToWorld.set_relative(0, 0, 0);
+		  //cameraToWorld.translate(cameraToWorld, cameraToWorld.y(), 0);
+		  //cameraToWorld.x() = 1;
+	  }
     }
 
     // pick and invader and fire a bomb
@@ -459,8 +479,10 @@ namespace octet {
       GLuint GameOver = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/GameOver.gif");
       sprites[game_over_sprite].init(GameOver, 20, 0, 3, 1.5f);
 
-      GLuint invaderer = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/invaderer3.gif");
-      for (int j = 0; j != num_rows; ++j) {
+	  GLuint invaderer = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/invaderer2.gif");
+	  GLuint invaderer2 = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/invaderer3.gif");
+	  
+	  for (int j = 0; j != num_rows; ++j) {
         for (int i = 0; i != num_cols; ++i) {
           assert(first_invaderer_sprite + i + j*num_cols <= last_invaderer_sprite);
           sprites[first_invaderer_sprite + i + j*num_cols].init(
@@ -499,6 +521,13 @@ namespace octet {
 	  music = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/music.wav");
 
 	  player_shoot = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/player_shoot.wav");
+	  player_hurt = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/player_hurt.wav");
+	  player_dead = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/player_dead.wav");
+
+	  enemy_shoot = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/enemy_shoot.wav");
+	  enemy_hit = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/enemy_hit.wav");
+
+
 
       cur_source = 0;
       alGenSources(num_sound_sources, sources);
