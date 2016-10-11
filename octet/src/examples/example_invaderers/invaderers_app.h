@@ -104,6 +104,10 @@ namespace octet {
 			modelToWorld.translate(x, y, 0);
 		}
 
+		void rotate(float x) {
+			modelToWorld.rotate(x, 0, 0, 1);
+		}
+
 		// position the object relative to another.
 		void set_relative(sprite &rhs, float x, float y) {
 			modelToWorld = rhs.modelToWorld;
@@ -160,6 +164,7 @@ namespace octet {
 			// sprite definitions
 			ship_sprite = 0,
 			game_over_sprite,
+			shipC_sprite,
 
 			first_S_sprite,
 			last_S_sprite = first_S_sprite + num_S_powerups - 1,
@@ -300,6 +305,9 @@ namespace octet {
 					sprites[ship_sprite].translate(-ship_speed, 0);
 				}
 			}
+			else if (is_key_down(key_backspace)) {
+				sprites[ship_sprite].rotate(5);
+			}
 		}
 
 		// fire button (space)
@@ -326,33 +334,33 @@ namespace octet {
 							sprites[first_missile_sprite + i].is_enabled() = true;
 							//
 							//
-							canChangeRandInt = true;
 							//
 							//
 							//TIMER INBETWEEN PLAYER SHOTS!!!
-							missiles_disabled = 1;
+							//missiles_disabled = 1;
 							ALuint source = get_sound_source();
 							alSourcei(source, AL_BUFFER, player_shoot);
 							alSourcePlay(source);
-							chargeTimer = 0;
 							break;
 						}
 					}
+					chargeTimer = 0;
+
 				
 			}
 			
-			/*if (camera_shake == 0)
+			if (camera_shake == 0)
 			{
-				cameraToWorld.translate(0, 0, 0);
+				//cameraToWorld.translate(0.001f, 0.001f, 0.001f);
 
 
-				vec4 &cpos = cameraToWorld.w();
 
 
 				//cameraToWorld.set_relative(0, 0, 0);
 				//cameraToWorld.translate(cameraToWorld, cameraToWorld.y(), 0);
 				//cameraToWorld.x() = 1;
-			*/
+			}
+			
 		}
 
 		// pick an invader and fire a bomb
@@ -388,22 +396,16 @@ namespace octet {
 
 		// animate the missiles
 		void move_missiles() {
-			const float missile_speed = 0.26f;
 			for (int i = 0; i != num_missiles; ++i) {
 				sprite &missile = sprites[first_missile_sprite + i];
 				if (missile.is_enabled()) {
 
-					float randInt2 = 0;
+					
+					float missile_speed = 0.26f;
+					//float missile_speed = ((rand() % 4) + 1) / 4;
 
-
-					if (canChangeRandInt)
-					{
-
-						randInt2 = rand() % 5 - 2;
-						canChangeRandInt = false;
-					}
 					//
-					missile.translate(randInt2/10, missile_speed);
+					missile.translate(0, missile_speed);
 					//
 
 					for (int j = 0; j != num_invaderers; ++j) {
@@ -479,8 +481,12 @@ namespace octet {
 			const float bomb_speed = 0.1f;
 			for (int i = 0; i != num_S_powerups; ++i) {
 				sprite &S_powerup = sprites[first_S_sprite + i];
+
+				
 				if (S_powerup.is_enabled()) {
-					S_powerup.translate(0.02f, -bomb_speed);
+
+					S_powerup.translate(sin(0), -bomb_speed);
+
 					if (S_powerup.collides_with(sprites[ship_sprite])) {
 						S_powerup.is_enabled() = false;
 						S_powerup.translate(20, 0);
@@ -530,8 +536,9 @@ namespace octet {
 				for (int i = 0; i != num_cols; ++i) {
 					assert(first_invaderer_sprite + i + j*num_cols <= last_invaderer_sprite);
 					sprites[first_invaderer_sprite + i + j*num_cols].init(
-						invaderer, ((float)i - num_cols * 0.5f) * 0.5f, 2.50f - ((float)j * 0.5f), 0.25f, 0.25f
-					);
+						invaderer, ((float)i - num_cols * 0.5f) * 0.5f, 2.50f - ((float)j * 0.5f), 0.25f, 0.25f);
+					int v1 = rand() % 100;
+					printf("eh" + v1);
 				}
 			}
 		}
@@ -590,8 +597,12 @@ namespace octet {
 
 			font_texture = resource_dict::get_texture_handle(GL_RGBA, "assets/big_0.gif");
 
+			GLuint shipC = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/ship.gif");
+			sprites[shipC_sprite].init(shipC, 0, 0, 0.1f, 0.1f);
+
 			GLuint ship = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/ship.gif");
 			sprites[ship_sprite].init(ship, 0, -2.75f, 0.25f, 0.25f);
+			
 
 			GLuint GameOver = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/GameOver.gif");
 			sprites[game_over_sprite].init(GameOver, 20, 0, 3, 1.5f);
@@ -615,7 +626,7 @@ namespace octet {
 			for (int i = 0; i != num_S_powerups; i++)
 			{
 				//create S' off screen
-				sprites[first_S_sprite + i].init(S_powerup, 20, 0, 0.0625f, 0.25f);
+				sprites[first_S_sprite + i].init(S_powerup, 20, 0, 0.25f,0.25f);
 				sprites[first_S_sprite + 1].is_enabled() = false;
 
 			}
