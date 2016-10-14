@@ -101,14 +101,22 @@ namespace octet {
 
 		// move the object
 
+
 		
 		void translate(float x, float y) {
 			modelToWorld.translate(x, y, 0);
 		}
 
+		float playerRotation = 0;
+		float missileRotation = 0;
+
+
 		void rotate(float x) {
-			modelToWorld.rotate(x, 0, 0, 1);
+			modelToWorld.rotateZ(x);
+			playerRotation += x;
+			missileRotation += x;
 		}
+
 
 		
 		
@@ -142,8 +150,6 @@ namespace octet {
 				;
 		}
 		
-
-
 		bool &is_enabled() {
 			return enabled;
 		}
@@ -167,6 +173,7 @@ namespace octet {
 			num_S_powerups = 6,
 			num_borders = 4,
 			num_invaderers = num_rows * num_cols,
+			num_asteroids = 6,
 			camera_shake = 0,
 
 			// sprite definitions
@@ -180,6 +187,8 @@ namespace octet {
 
 			first_S_sprite,
 			last_S_sprite = first_S_sprite + num_S_powerups - 1,
+
+			asteroid_1,asteroid_2,asteroid_3,
 
 			first_invaderer_sprite,
 			last_invaderer_sprite = first_invaderer_sprite + num_invaderers - 1,
@@ -198,6 +207,8 @@ namespace octet {
 		};
 
 		float ship_speed = 0;
+
+		float blastfloat = 0;		//if blastfloat is >0.5f, be near the player, else warp away
 
 		// timers for missiles and bombs
 		int missiles_disabled;
@@ -288,7 +299,7 @@ namespace octet {
 			if (is_key_down(key_space) && titleScreen)
 			{
 				sprites[start_sprite].translate(40, 0);
-				//create_Invaders();
+				create_Invaders();
 
 				create_Player();
 				titleScreen = false;
@@ -318,26 +329,17 @@ namespace octet {
 
 		// use the keyboard to move the ship
 		void move_ship() {
-			// left and right arrows
 
-			//sprites[shipSpriteFull].set_relative(sprites[ship_sprite], 0, 0);
+			float shipRotateSpeed = 4;
+
 
 			if (is_key_down(key_left)) {
 
-				sprites[ship_sprite].rotate(4);
-
-
-				/*
-				sprites[ship_sprite].translate(-ship_speed, 0);
-				if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 2])) {
-
-					//completely negates previous movement code... cheeky!
-					sprites[ship_sprite].translate(+ship_speed, 0);
-					*/
+				sprites[ship_sprite].rotate(shipRotateSpeed);
 				
 			}
 			else if (is_key_down(key_right)) {
-				sprites[ship_sprite].rotate(-4);
+				sprites[ship_sprite].rotate(-shipRotateSpeed);
 
 				/*
 				sprites[ship_sprite].translate(+ship_speed, 0);
@@ -345,9 +347,11 @@ namespace octet {
 					sprites[ship_sprite].translate(-ship_speed, 0);
 				}
 				*/
+			}		
+			if (is_key_going_down(key_space))
+			{
+				blastfloat = 1;
 			}
-			//
-			//
 			if (is_key_down(key_space))
 			{
 				if (ship_speed < 12)
@@ -356,6 +360,21 @@ namespace octet {
 					ship_speed = 12;
 
 				sprites[ship_sprite].translate(0, ship_speed / 240);
+
+				if (blastfloat > 0)
+				{
+					blastfloat -= 0.5f;
+				}
+				else
+				{
+					blastfloat = 1;
+				}
+
+				if (blastfloat > 0.5f)
+					sprites[shipSpriteFull].set_relative(sprites[ship_sprite], 0, -0.04f);
+				else
+					sprites[shipSpriteFull].translate(40, 40);
+
 
 			}
 			if (!is_key_down(key_space))
@@ -366,16 +385,47 @@ namespace octet {
 					ship_speed = 0;
 
 				sprites[ship_sprite].translate(0, ship_speed / 240);
+				sprites[shipSpriteFull].translate(40, 40);
+
 				
 			}
+
+			//printf("%f \n", sprites[ship_sprite].playerRotation);
 			
+			//printf("\n%f , playerRotation ", sprites[ship_sprite].playerRotation);
 
 
 			//if you touch the right wall...
 			if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 3])) 
 			{
-				sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3], -5, 0);
-				//sprites[first_border_sprite + 3]
+				float tempRotation = sprites[ship_sprite].playerRotation;
+				sprites[ship_sprite].rotate(-sprites[ship_sprite].playerRotation);		//make rotation 0
+				sprites[ship_sprite].set_relative(sprites[ship_sprite], -6, 0);			//move it left
+				sprites[ship_sprite].rotate(tempRotation);								//return rotation to orginial rot
+			}
+			//left wall...
+			if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 2]))
+			{
+				float tempRotation = sprites[ship_sprite].playerRotation;
+				sprites[ship_sprite].rotate(-sprites[ship_sprite].playerRotation);		//make rotation 0
+				sprites[ship_sprite].set_relative(sprites[ship_sprite], 6, 0);			//move it left
+				sprites[ship_sprite].rotate(tempRotation);								//return rotation to orginial rot
+			}
+			//bottom wall...
+			if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 0]))
+			{
+				float tempRotation = sprites[ship_sprite].playerRotation;
+				sprites[ship_sprite].rotate(-sprites[ship_sprite].playerRotation);		//make rotation 0
+				sprites[ship_sprite].set_relative(sprites[ship_sprite], 0, 6);			//move it left
+				sprites[ship_sprite].rotate(tempRotation);								//return rotation to orginial rot
+			}
+			//top wall...
+			if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 1]))
+			{
+				float tempRotation = sprites[ship_sprite].playerRotation;
+				sprites[ship_sprite].rotate(-sprites[ship_sprite].playerRotation);		//make rotation 0
+				sprites[ship_sprite].set_relative(sprites[ship_sprite], 0, -6);			//move it left
+				sprites[ship_sprite].rotate(tempRotation);								//return rotation to orginial rot
 			}
 
 			//printf(sprites[ship_sprite].getRotation();
@@ -512,13 +562,49 @@ namespace octet {
 							goto next_missile;
 						}
 					}
-					if ((missile.collides_with(sprites[first_border_sprite + 0]))
+					/*if ((missile.collides_with(sprites[first_border_sprite + 0]))
 						|| (missile.collides_with(sprites[first_border_sprite + 1]))
 						|| (missile.collides_with(sprites[first_border_sprite + 2]))
 						|| (missile.collides_with(sprites[first_border_sprite + 3])))
 					{
 						missile.is_enabled() = false;
 						missile.translate(20, 0);
+					}
+					*/
+					if (missile.collides_with(sprites[first_border_sprite + 3]))
+					{
+						/*printf("%f, initial rotation \n", missile.missileRotation);
+						float tempRotation = missile.missileRotation;
+						missile.rotate(-missile.missileRotation);		//make rotation 0
+						printf("%f, fixed rotation \n", missile.missileRotation);
+						*/
+						missile.translate(-5, 0);		//move it left
+						//missile.rotate(tempRotation);								//return rotation to orginial rot
+					}
+					//left wall...
+					if (missile.collides_with(sprites[first_border_sprite + 2]))
+					{
+						float tempRotation = missile.missileRotation;
+						missile.rotate(-missile.missileRotation);		//make rotation 0
+						missile.set_relative(missile, 6, 0);			//move it left
+						missile.rotate(tempRotation);								//return rotation to orginial rot
+					}
+					//bottom wall...
+					if (missile.collides_with(sprites[first_border_sprite + 0]))
+					{
+						float tempRotation = missile.missileRotation;
+						missile.rotate(-missile.missileRotation);		//make rotation 0
+						missile.set_relative(missile, 0, 6);			//move it left
+						missile.rotate(tempRotation);								//return rotation to orginial rot
+
+					}
+					//top wall...
+					if (missile.collides_with(sprites[first_border_sprite + 1]))
+					{
+						float tempRotation = missile.missileRotation;
+						missile.rotate(-missile.missileRotation);		//make rotation 0
+						missile.set_relative(missile, 0, -6);			//move it left
+						missile.rotate(tempRotation);								//return rotation to orginial rot
 					}
 				}
 			next_missile:;
@@ -604,15 +690,33 @@ namespace octet {
 			GLuint invaderer = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/invaderer2.gif");
 			//GLuint invaderer2 = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/invaderer3.gif");
 
-			for (int j = 0; j != num_rows; ++j) {
+			GLuint asteroid1 = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/asteroid1.gif");
+
+
+
+			for (int j = 0; j < 6; j++)
+			{
+				int a = rand() % 10 - 5;
+				int b = rand() % 10 - 5;
+
+				printf("( %f, %f)\n",(float)a,(float)b);
+
+				sprites[asteroid_1].init(asteroid1,  (float)(a), (float)(b), 0.5f,0.5f);
+
+			}
+			
+			/*for (int j = 0; j != num_rows; ++j) {
 				for (int i = 0; i != num_cols; ++i) {
 					assert(first_invaderer_sprite + i + j*num_cols <= last_invaderer_sprite);
 					sprites[first_invaderer_sprite + i + j*num_cols].init(
-						invaderer, ((float)i - num_cols * 0.5f) * 0.5f, 2.50f - ((float)j * 0.5f), 0.25f, 0.25f);
+						asteroid1, ((float)i - num_cols * 0.5f) * 0.5f, 2.50f - ((float)j * 0.5f), 0.25f, 0.25f);
 					int v1 = rand() % 100;
 					printf("eh" + v1);
 				}
 			}
+			*/
+			
+			
 		}
 
 		void create_Player()
@@ -695,8 +799,6 @@ namespace octet {
 			GLuint Start = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/Start.gif");
 			sprites[start_sprite].init(Start, 0, 0, 5, 4);
 
-			GLuint shipblast = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/shipBlastFull.gif");
-			sprites[shipSpriteFull].init(shipblast, 0, 0, 0.25f, 0.25f);
 
 
 
@@ -712,10 +814,10 @@ namespace octet {
 			// set the border to white for clarity
 			GLuint white = resource_dict::get_texture_handle(GL_RGB, "#ffffff");
 			GLuint black = resource_dict::get_texture_handle(GL_RGB, "#000000");
-			sprites[first_border_sprite + 0].init(black, 0, -3, 6, 0.2f);		//bottom
-			sprites[first_border_sprite + 1].init(black, 0, 3, 6, 0.2f);		//top
-			sprites[first_border_sprite + 2].init(black, -3, 0, 0.2f, 6);		//left
-			sprites[first_border_sprite + 3].init(black, 3, 0, 0.2f, 6);		//guess
+			sprites[first_border_sprite + 0].init(black, 0, -3.3f, 6, 0.2f);		//bottom
+			sprites[first_border_sprite + 1].init(black, 0, 3.3f, 6, 0.2f);		//top
+			sprites[first_border_sprite + 2].init(black, -3.3f, 0, 0.2f, 6);		//left
+			sprites[first_border_sprite + 3].init(black, 3.3f, 0, 0.2f, 6);		//guess
 			
 
 			// use the S texture
