@@ -226,8 +226,7 @@ namespace octet {
 		//player lives!!!
 		int num_lives;
 
-		int chargeTimer = 0;
-
+		int deathTimer = 0;
 		// game state
 		bool game_over;
 		int score;
@@ -357,7 +356,7 @@ namespace octet {
 			alSourcei(source, AL_BUFFER, player_hurt);
 			alSourcePlay(source);
 
-			sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3],-3.2f,0);
+			//sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3],-3.2f,0);
 
 			if (--num_lives == 0) {
 				game_over = true;
@@ -377,8 +376,7 @@ namespace octet {
 		// use the keyboard to move the ship
 		void move_ship() {
 
-			float shipRotateSpeed = 4;
-
+			const float shipRotateSpeed = 4;
 
 			if (is_key_down(key_left)) {
 
@@ -386,19 +384,15 @@ namespace octet {
 
 			}
 			else if (is_key_down(key_right)) {
+
 				sprites[ship_sprite].rotate(-shipRotateSpeed);
 
-				/*
-				sprites[ship_sprite].translate(+ship_speed, 0);
-				if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 3])) {
-					sprites[ship_sprite].translate(-ship_speed, 0);
-				}
-				*/
 			}
 			if (is_key_going_down(key_space))
 			{
-				blastfloat = 1;
+				blastfloat = 1;			//for blast graphic.
 			}
+
 			if (is_key_down(key_space))
 			{
 				if (ship_speed < 12)
@@ -408,6 +402,7 @@ namespace octet {
 
 				sprites[ship_sprite].translate(0, ship_speed / 240);
 
+				//
 				if (blastfloat > 0)
 				{
 					blastfloat -= 0.5f;
@@ -422,7 +417,6 @@ namespace octet {
 				else
 					sprites[shipSpriteFull].translate(40, 40);
 
-
 			}
 			if (!is_key_down(key_space))
 			{
@@ -435,11 +429,14 @@ namespace octet {
 				sprites[shipSpriteFull].translate(40, 40);
 			}
 
+
 			for (int j = 0; j != num_invaderers; ++j)
 			{
 				sprite &invaderer = sprites[first_invaderer_sprite + j];
 				if (invaderer.is_enabled() && sprites[ship_sprite].collides_with(invaderer))
 				{	
+					deathTimer = 30;
+
 					for (int i = 0; i != num_explosions; ++i)
 					{
 						sprite &explosion = sprites[first_explosion_sprite + i];
@@ -448,8 +445,22 @@ namespace octet {
 						explosion.set_relative(sprites[ship_sprite], 0, 0);
 						explosion.rotate((float)((i) * rotateAngle));
 						explosion.is_enabled() = true;
+						
 					}
 				}
+			}
+
+
+			if (deathTimer > 0)
+			{
+				deathTimer-=0.001f;
+				sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3],20,0);
+			}
+			else if (deathTimer < 0)
+			{
+				deathTimer = 0;
+				sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3], -3.2f, 0);
+				deathTimer = 0;
 			}
 			//if you touch the right wall...
 			if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 3]))
@@ -541,15 +552,6 @@ namespace octet {
 						break;
 					}
 				}
-			}
-			if (is_key_going_up(key_ctrl))
-			{
-				chargeTimer = 0;
-			}
-
-			if (camera_shake == 0)
-			{
-
 			}
 
 		}
