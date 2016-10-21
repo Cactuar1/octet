@@ -20,7 +20,6 @@
 namespace octet {
 	class sprite {
 		// where is our sprite (overkill for a 2D game!)
-		mat4t modelToWorld;
 
 		// half the width of the sprite
 		float halfWidth;
@@ -37,6 +36,9 @@ namespace octet {
 
 
 	public:
+
+		mat4t modelToWorld;
+
 		sprite() {
 			texture = 0;
 			enabled = true;
@@ -48,9 +50,11 @@ namespace octet {
 		float playerRotation = 0;		//keeping track of the player's rotation	
 		float missileRotation = 0;		//keeping track of the asteroid's rotation
 
+		vec3 velocity;
+
 		float modelScale;
 
-		bool touchedWall;
+		float missileTimer;
 
 		
 
@@ -179,7 +183,7 @@ namespace octet {
 			num_sound_sources = 8,
 			num_rows = 2,
 			num_cols = 4,
-			num_missiles = 1,
+			num_missiles = 3,
 			num_bombs = 2,
 			num_S_powerups = 6,
 			num_explosions = 8,
@@ -198,6 +202,7 @@ namespace octet {
 			shipSpriteFull,
 			shipSpriteEmpty,
 			explosionSprite,
+			arrow_forward_sprite, //testing only!!
 
 			first_explosion_sprite,
 			last_explosion_sprite = first_explosion_sprite + num_explosions - 1,
@@ -404,6 +409,7 @@ namespace octet {
 				sprites[ship_sprite].rotate(-shipRotateSpeed);
 			}
 
+
 			if (is_key_going_down(key_space))
 			{
 				blastfloat = 1;			//for blast graphic.
@@ -411,29 +417,32 @@ namespace octet {
 
 			if (is_key_down(key_space))
 			{
-				if (ship_speed < 12)
+				sprites[ship_sprite].velocity = vec3(sprites[ship_sprite].modelToWorld[3][0], sprites[ship_sprite].modelToWorld[3][1], 0);
+				sprites[ship_sprite].translate(0, ship_speed / 240);
+				sprites[arrow_forward_sprite].set_relative(sprites[ship_sprite], 0, 0);
+				sprites[arrow_forward_sprite].missileRotation = sprites[ship_sprite].playerRotation;
+
+				//inhibit top speed
+				if (ship_speed < 16)
 					ship_speed += 0.8f;
 				else
-					ship_speed = 12;
+					ship_speed = 16;
 
-				sprites[ship_sprite].translate(0, ship_speed / 240);
-
-				//
+				//for the blast graphic.
 				if (blastfloat > 0)
-				{
 					blastfloat -= 0.5f;
-				}
 				else
-				{
 					blastfloat = 1;
-				}
-
+				
+				//just warps the blast graphic from offscreen to player
 				if (blastfloat > 0.5f)
 					sprites[shipSpriteFull].set_relative(sprites[ship_sprite], 0, -0.04f);
 				else
 					sprites[shipSpriteFull].translate(40, 40);
-
 			}
+
+			printf("%f %f \n", sprites[ship_sprite].modelToWorld[3][0], sprites[ship_sprite].modelToWorld[3][1]);
+
 			if (!is_key_down(key_space))
 			{
 				if (ship_speed > 0)
@@ -442,6 +451,8 @@ namespace octet {
 					ship_speed = 0;
 
 				sprites[ship_sprite].translate(0, ship_speed / 240);
+
+				//warp blastgraphic away.
 				sprites[shipSpriteFull].translate(40, 40);
 			}
 
@@ -463,7 +474,6 @@ namespace octet {
 						explosion.set_relative(sprites[ship_sprite], 0, 0);
 						explosion.rotate((float)((i) * rotateAngle));
 						explosion.is_enabled() = true;
-						
 					}
 				}
 			}
@@ -490,8 +500,8 @@ namespace octet {
 					deathTimer = 0;
 					dead = false;
 				}
-			
 			}
+
 			//if you touch the right wall...
 			if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 3]))
 			{
@@ -574,6 +584,7 @@ namespace octet {
 				{
 					if (!sprites[first_missile_sprite + i].is_enabled())
 					{
+						sprites[first_missile_sprite + i].missileTimer = 20;
 						sprites[first_missile_sprite + i].set_relative(sprites[ship_sprite], 0, 0.02f);
 						sprites[first_missile_sprite + i].is_enabled() = true;
 						//set the missile's rotation float to the ship's rotation thing -- NEEDS THIS !!!
@@ -635,6 +646,8 @@ namespace octet {
 				{
 					float missile_speed = 0.26f;
 
+					missile.missileTimer--;
+
 					missile.translate(0, missile_speed);
 
 					for (int j = 0; j != num_invaderers; ++j)
@@ -672,79 +685,51 @@ namespace octet {
 
 							goto next_missile;
 						}
+						if (missile.missileTimer <= 0)
+						{
+							missile.is_enabled() = false;
+							missile.translate(20, 0);
+							goto next_missile;
+						}
 					}
 					
 					if (missile.collides_with(sprites[first_border_sprite + 3]))
 					{
-						if (!missile.touchedWall)
-						{
 							float tempRotation = missile.missileRotation;
 							missile.rotate(-missile.missileRotation);		//make rotation 0
 							missile.set_relative(missile, -6, 0);			//move it left
 							missile.rotate(tempRotation);					//return rotation to orginial rot
-							missile.touchedWall = true;
-						}
-						else
-						{
-							missile.is_enabled() = false;
-							missile.translate(20, 0);
-							missile.touchedWall = false;
-						}
+						
 					}
 					//left wall...
 					if (missile.collides_with(sprites[first_border_sprite + 2]))
 					{
-						if (!missile.touchedWall)
-						{
+
 							float tempRotation = missile.missileRotation;
 							missile.rotate(-missile.missileRotation);		//make rotation 0
 							missile.set_relative(missile, 6, 0);			//move it left
 							missile.rotate(tempRotation);								//return rotation to orginial rot
-							missile.touchedWall = true;
-						}
-						else
-						{
-							missile.is_enabled() = false;
-							missile.translate(20, 0);
-							missile.touchedWall = false;
-						}
+							
 					}
 					//bottom wall...
 					if (missile.collides_with(sprites[first_border_sprite + 0]))
 					{
-						if (!missile.touchedWall)
-						{
+						
 							float tempRotation = missile.missileRotation;
 							missile.rotate(-missile.missileRotation);		//make rotation 0
 							missile.set_relative(missile, 0, 6);			//move it left
 							missile.rotate(tempRotation);								//return rotation to orginial rot
-							missile.touchedWall = true;
-						}
-						else
-						{
-							missile.is_enabled() = false;
-							missile.translate(20, 0);
-							missile.touchedWall = false;
-						}
-
+						
 					}
 					//top wall...
 					if (missile.collides_with(sprites[first_border_sprite + 1]))
 					{
-						if (!missile.touchedWall)
-						{
+						
 							float tempRotation = missile.missileRotation;
 							missile.rotate(-missile.missileRotation);		//make rotation 0
 							missile.translate(0, -6);		//move it left
 							missile.rotate(tempRotation);								//return rotation to orginial rot
-							missile.touchedWall = true;
-						}
-						else
-						{
-							missile.is_enabled() = false;
-							missile.translate(20, 0);
-							missile.touchedWall = false;
-						}
+						
 					}
 				}
 			next_missile:;
@@ -916,6 +901,9 @@ namespace octet {
 
 			GLuint PressSpace = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/PressSpaceToContinue.gif");
 			sprites[press_start_sprite].init(PressSpace, 30, 0, 5, 4);
+
+			GLuint arrowForward = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/arrow_forward.gif");
+			sprites[arrow_forward_sprite].init(arrowForward, 20, 0, 0.5f, 0.5f);
 
 
 
