@@ -44,9 +44,18 @@ namespace octet {
 
 		float xDir;						//for the asteroids' random X velocity at start
 		float yDir;						//for the asteroids' random Y velocity at start
-			
+
 		float playerRotation = 0;		//keeping track of the player's rotation	
 		float missileRotation = 0;		//keeping track of the asteroid's rotation
+
+		float modelScale;
+
+		bool touchedWall;
+
+		
+
+		float explosion_speed;
+
 
 		void init(int _texture, float x, float y, float w, float h) {
 			modelToWorld.loadIdentity();
@@ -118,6 +127,12 @@ namespace octet {
 			playerRotation += x;
 		}
 
+		void scale(float x)
+		{
+			modelToWorld.scale(x, x, 0);
+			modelScale += x;
+		}
+
 		// position the object relative to another.
 		void set_relative(sprite &rhs, float x, float y) {
 			modelToWorld = rhs.modelToWorld;
@@ -164,7 +179,7 @@ namespace octet {
 			num_sound_sources = 8,
 			num_rows = 2,
 			num_cols = 4,
-			num_missiles = 30,
+			num_missiles = 1,
 			num_bombs = 2,
 			num_S_powerups = 6,
 			num_explosions = 8,
@@ -176,6 +191,7 @@ namespace octet {
 			// sprite definitions
 			ship_sprite = 0,
 			start_sprite,
+			press_start_sprite,
 			game_over_sprite,
 
 			shipC_sprite,
@@ -226,6 +242,7 @@ namespace octet {
 		//player lives!!!
 		int num_lives;
 
+		bool dead = false;
 		int deathTimer = 0;
 		// game state
 		bool game_over;
@@ -287,6 +304,7 @@ namespace octet {
 
 						sprites[first_invaderer_sprite + i + j*num_cols].init(
 							invaderer, ((float)i - num_cols * 0.5f) * 0.5f, 2.50f - ((float)j * 0.5f), 0.4f, 0.4f);
+						//sprites[first_invaderer_sprite + i + j*num_cols].rotate(rand() % 360);
 					}
 				}
 			}				
@@ -379,15 +397,13 @@ namespace octet {
 			const float shipRotateSpeed = 4;
 
 			if (is_key_down(key_left)) {
-
 				sprites[ship_sprite].rotate(shipRotateSpeed);
-
 			}
+
 			else if (is_key_down(key_right)) {
-
 				sprites[ship_sprite].rotate(-shipRotateSpeed);
-
 			}
+
 			if (is_key_going_down(key_space))
 			{
 				blastfloat = 1;			//for blast graphic.
@@ -435,13 +451,15 @@ namespace octet {
 				sprite &invaderer = sprites[first_invaderer_sprite + j];
 				if (invaderer.is_enabled() && sprites[ship_sprite].collides_with(invaderer))
 				{	
-					deathTimer = 30;
+					deathTimer = 60;
+					num_lives--;
 
 					for (int i = 0; i != num_explosions; ++i)
 					{
 						sprite &explosion = sprites[first_explosion_sprite + i];
 						//makes 7 explosions...
-						int rotateAngle = 51.4285f;			
+						int rotateAngle = 51.4285f;	
+						explosion.explosion_speed = 0.18f;
 						explosion.set_relative(sprites[ship_sprite], 0, 0);
 						explosion.rotate((float)((i) * rotateAngle));
 						explosion.is_enabled() = true;
@@ -453,14 +471,26 @@ namespace octet {
 
 			if (deathTimer > 0)
 			{
-				deathTimer-=0.001f;
+				deathTimer--;
+				dead = true;
 				sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3],20,0);
 			}
-			else if (deathTimer < 0)
+			else if (deathTimer == 0 && dead)
 			{
-				deathTimer = 0;
-				sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3], -3.2f, 0);
-				deathTimer = 0;
+				//move the 'press space to start' to screen
+				sprites[press_start_sprite].set_relative(sprites[first_border_sprite + 3], -3.2f, 0);
+
+				if (is_key_going_down(key_space))
+				{
+					//reset player position, essentially
+					deathTimer = 0;
+					sprites[press_start_sprite].set_relative(sprites[first_border_sprite + 3], 30, 0);
+					sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3], -3.2f, 0);
+					sprites[ship_sprite].playerRotation = 0;
+					deathTimer = 0;
+					dead = false;
+				}
+			
 			}
 			//if you touch the right wall...
 			if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 3]))
@@ -495,30 +525,38 @@ namespace octet {
 				sprites[ship_sprite].rotate(tempRotation);								//return rotation to orginial rot
 			}
 
-			//printf(sprites[ship_sprite].getRotation();
-
-
-
 		}
 
 		void move_explosions()
 		{
-			const float explosion_speed = 0.15f;
+
 			for (int i = 0; i != num_explosions; ++i)
 			{
 				sprite &explosion = sprites[first_explosion_sprite + i];
+
+
+				if (explosion.explosion_speed > 0)
+				{
+					explosion.explosion_speed -= 0.01f;
+				}
+				else
+				{
+					explosion.explosion_speed = (0, 0, 0);
+					explosion.rotate(4);
+					if (explosion.modelScale == 0.1f)
+					{
+						explosion.modelScale = 1;
+						explosion.scale(10);
+						explosion.set_relative(sprites[first_border_sprite + 3], 30, 0);
+						explosion.is_enabled() = false;
+					}
+					
+				}				
+
 				if (explosion.is_enabled())
 				{
-					explosion.translate(0, -explosion_speed);
-
-					if (explosion.collides_with(sprites[first_border_sprite + 0])
-						|| explosion.collides_with(sprites[first_border_sprite + 1])
-						|| explosion.collides_with(sprites[first_border_sprite + 2])
-						|| explosion.collides_with(sprites[first_border_sprite + 3]))
-					{
-						explosion.is_enabled() = false;
-						explosion.translate(20, 0);
-					}
+					explosion.translate(0, -explosion.explosion_speed);
+					explosion.scale(0.9f);
 				}
 
 			}
@@ -606,6 +644,7 @@ namespace octet {
 						{
 							invaderer.is_enabled() = false;
 
+							//random chance of dropping an 'S'
 							int randInt = rand() % 4;
 							if (randInt == 3)
 							{
@@ -625,6 +664,7 @@ namespace octet {
 									}
 								}
 							}
+							//
 							invaderer.translate(20, 0);
 							missile.is_enabled() = false;
 							missile.translate(20, 0);
@@ -636,35 +676,75 @@ namespace octet {
 					
 					if (missile.collides_with(sprites[first_border_sprite + 3]))
 					{
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.set_relative(missile, -6, 0);			//move it left
-						missile.rotate(tempRotation);								//return rotation to orginial rot
+						if (!missile.touchedWall)
+						{
+							float tempRotation = missile.missileRotation;
+							missile.rotate(-missile.missileRotation);		//make rotation 0
+							missile.set_relative(missile, -6, 0);			//move it left
+							missile.rotate(tempRotation);					//return rotation to orginial rot
+							missile.touchedWall = true;
+						}
+						else
+						{
+							missile.is_enabled() = false;
+							missile.translate(20, 0);
+							missile.touchedWall = false;
+						}
 					}
 					//left wall...
 					if (missile.collides_with(sprites[first_border_sprite + 2]))
 					{
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.set_relative(missile, 6, 0);			//move it left
-						missile.rotate(tempRotation);								//return rotation to orginial rot
+						if (!missile.touchedWall)
+						{
+							float tempRotation = missile.missileRotation;
+							missile.rotate(-missile.missileRotation);		//make rotation 0
+							missile.set_relative(missile, 6, 0);			//move it left
+							missile.rotate(tempRotation);								//return rotation to orginial rot
+							missile.touchedWall = true;
+						}
+						else
+						{
+							missile.is_enabled() = false;
+							missile.translate(20, 0);
+							missile.touchedWall = false;
+						}
 					}
 					//bottom wall...
 					if (missile.collides_with(sprites[first_border_sprite + 0]))
 					{
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.set_relative(missile, 0, 6);			//move it left
-						missile.rotate(tempRotation);								//return rotation to orginial rot
+						if (!missile.touchedWall)
+						{
+							float tempRotation = missile.missileRotation;
+							missile.rotate(-missile.missileRotation);		//make rotation 0
+							missile.set_relative(missile, 0, 6);			//move it left
+							missile.rotate(tempRotation);								//return rotation to orginial rot
+							missile.touchedWall = true;
+						}
+						else
+						{
+							missile.is_enabled() = false;
+							missile.translate(20, 0);
+							missile.touchedWall = false;
+						}
 
 					}
 					//top wall...
 					if (missile.collides_with(sprites[first_border_sprite + 1]))
 					{
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.translate(0, -6);		//move it left
-						missile.rotate(tempRotation);								//return rotation to orginial rot
+						if (!missile.touchedWall)
+						{
+							float tempRotation = missile.missileRotation;
+							missile.rotate(-missile.missileRotation);		//make rotation 0
+							missile.translate(0, -6);		//move it left
+							missile.rotate(tempRotation);								//return rotation to orginial rot
+							missile.touchedWall = true;
+						}
+						else
+						{
+							missile.is_enabled() = false;
+							missile.translate(20, 0);
+							missile.touchedWall = false;
+						}
 					}
 				}
 			next_missile:;
@@ -833,6 +913,9 @@ namespace octet {
 
 			GLuint Start = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/Start.gif");
 			sprites[start_sprite].init(Start, 0, 0, 5, 4);
+
+			GLuint PressSpace = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/PressSpaceToContinue.gif");
+			sprites[press_start_sprite].init(PressSpace, 30, 0, 5, 4);
 
 
 
