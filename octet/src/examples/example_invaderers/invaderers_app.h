@@ -189,6 +189,9 @@ namespace octet {
 		int missiles_disabled;
 		int bombs_disabled;
 
+		int aInt;
+		int bInt;
+
 		// random direction for bullets...
 		bool canChangeRandInt = false;
 
