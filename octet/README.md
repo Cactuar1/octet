@@ -5,12 +5,14 @@ ASTEROIDS --	README
 Original code by Andy Thomason, adapted into Atari's 'Asteroids' by Luke Sanderson
 
 **RUNNING THE GAME**
+
+
 To run the game, simply run :
 example_ASTEROIDS/invaderers_app.h.
 
 This is a recreation of the hit arcade game of 1979, Atari's Asteroids. 
 
-**MAKING OF***
+**MAKING OF**
 
 The project started as a simple version of Taito's Space Invaders, and has had changed code and art assets in order to become Asteroids.
 
@@ -18,7 +20,7 @@ Much like the original file, the sprites of the asteroids and any objects that h
 
 In order to retain the screen wrapping effect from the original Asteroids, upon colliding with an (offscreen) border object, the player's rotation was stored, it's rotation set to 0, warped to the other side and finally reset to the previous player's rotation. This was done as moving the player by the translate function would have moved it by it's local axis, rather than the world's co-ordinates. While it worked, it was unwieldy and rather ugly to look at, so in the end I managed to move each wrappable object by it's modelToWorld. For example:
 
-sprites[ship_sprite].modelToWorld[3][0] = -6;
+		sprites[ship_sprite].modelToWorld[3][0] = -6;
 
 would have set the ship's x co-ordinate to -6;
 
