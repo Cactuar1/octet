@@ -334,6 +334,23 @@ namespace octet { namespace scene {
       return result;
     }
 
+	
+/*	
+	void applySpring(btRigidBody *rbA, btRigidBody *rbB, btTransform tran1, btTransform tran2)
+	{
+		btGeneric6DofSpringConstraint* spring = new btGeneric6DofSpringConstraint(*rbA, *rbB, tran1, tran2, true);
+
+		spring->setStiffness(0, (5));
+		spring->setLinearLowerLimit(btVector3(0.02, 0, 0));
+		spring->setLinearUpperLimit(btVector3(0.02, 0, 0));
+
+		spring->enableSpring(0, true);
+		spring->setDamping(0, (5));
+		world->addConstraint(spring);
+
+	}
+	*/
+	
     /// Serialization
     void visit(visitor &v) {
       scene_node::visit(v);

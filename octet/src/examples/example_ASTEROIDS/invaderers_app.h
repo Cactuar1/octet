@@ -38,8 +38,8 @@ namespace octet {
 
 
 
-	public:		
-		
+	public:
+
 		mat4t modelToWorld;
 
 
@@ -193,8 +193,8 @@ namespace octet {
 
 			//6big +12small +24tiny
 			num_big_asteroids = 6,
-			num_small_asteroids = 12,
-			num_tiny_asteroids = 24,
+			num_small_asteroids = num_big_asteroids * 2,
+			num_tiny_asteroids = num_small_asteroids * 2,
 			num_asteroids = num_big_asteroids + num_small_asteroids + num_tiny_asteroids,
 
 
@@ -212,8 +212,8 @@ namespace octet {
 			first_explosion_sprite,
 			last_explosion_sprite = first_explosion_sprite + num_explosions - 1,
 
-			first_asteroid_sprite,
-			last_asteroid_sprite = first_asteroid_sprite + num_big_asteroids - 1,
+			first_asteroid_big_sprite,
+			last_asteroid_big_sprite = first_asteroid_big_sprite + num_big_asteroids - 1,
 
 			first_asteroid_small_sprite,
 			last_asteroid_small_sprite = first_asteroid_small_sprite + num_small_asteroids - 1,
@@ -238,18 +238,18 @@ namespace octet {
 
 		float blastfloat = 0;		//if blastfloat is >0.5f, be near the player, else warp away
 
-		int aInt;
-		int bInt;
-
 		// timers for missiles and bombs
 		int missiles_disabled;
 		int bombs_disabled;
 
-		// random direction for bullets...
-		bool canChangeRandInt = false;
+		int bigCounter = 0;
+		int smallCounter = 0;
+		int tinyCounter = 0;
 
 		//if game is not playing
 		bool titleScreen = true;
+
+		int resetTimer = 60;
 
 		// accounting for bad guys
 		int live_asteroids;
@@ -267,7 +267,7 @@ namespace octet {
 		float camerashake = 0;
 
 		// speed of enemy
-		float invader_velocity;
+		float asteroid_velocity;
 
 		// sounds
 		ALuint whoosh;
@@ -311,21 +311,27 @@ namespace octet {
 		{
 
 			GLuint asteroid = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/asteroid1.gif");
+			GLuint asteroid2 = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/asteroid1.gif");
+			GLuint asteroid3 = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/asteroid1.gif");
 
 			//first 6 are big
 			for (int k = 0; k != num_big_asteroids; ++k)
 			{
-				assert(first_asteroid_sprite + k <= last_asteroid_sprite);
+				assert(first_asteroid_big_sprite + k <= last_asteroid_big_sprite);
 
-				sprites[first_asteroid_sprite + k].init(
-					asteroid, 2.50f - ((float)k * 0.5f), 2.50f - ((float)k * 0.5f), 0.5f, 0.5f);
-				sprites[first_asteroid_sprite + k].xDir = ((std::rand() % 20) - 10) * 0.005f;
-				sprites[first_asteroid_sprite + k].yDir = ((std::rand() % 20) - 10) * 0.005f;
-				float initAsteroidRot = rand() % 360;
-				sprites[first_asteroid_sprite + k].rotate(initAsteroidRot);
-				sprites[first_asteroid_sprite + k].missileRotation = initAsteroidRot;
+				float pointNum = (k*0.5f) / num_big_asteroids;
+				float angle = pointNum*3.14159265;
+				float x = sin(angle*4) * 2.5f;
+				float y = cos(angle*4) * 2.5f;
 
-				sprites[first_asteroid_sprite + k].asteroidSize = 1;
+				sprites[first_asteroid_big_sprite + k].init(
+					asteroid, x,y, 0.6f, 0.6f);
+				sprites[first_asteroid_big_sprite + k].xDir = randomizer.get(-10, 10) * (0.003f);
+				sprites[first_asteroid_big_sprite + k].yDir = randomizer.get(-10, 10) * (0.003f);
+				float initAsteroidRot = randomizer.get(0, 360);
+				sprites[first_asteroid_big_sprite + k].rotate(initAsteroidRot);
+				sprites[first_asteroid_big_sprite + k].missileRotation = initAsteroidRot;
+				sprites[first_asteroid_big_sprite + k].asteroidSize = 1;
 			}
 			//next few are smaller and start dead
 			for (int l = 0; l != num_small_asteroids; ++l)
@@ -333,32 +339,31 @@ namespace octet {
 				assert(first_asteroid_small_sprite + l <= last_asteroid_small_sprite);
 
 				sprites[first_asteroid_small_sprite + l].init(
-					asteroid, 20, 0, 0.3f, 0.3f);
+					asteroid2, 20, 0, 0.4f, 0.4f);
 				sprites[first_asteroid_small_sprite + l].is_enabled() = false;
-				sprites[first_asteroid_small_sprite + l].xDir = ((std::rand() % 20) - 10) * 0.008f;
-				sprites[first_asteroid_small_sprite + l].yDir = ((std::rand() % 20) - 10) * 0.008f;
-				float initAsteroidRot = rand() % 360;
+				sprites[first_asteroid_small_sprite + l].xDir = randomizer.get(-10,10) * (0.006f);
+				sprites[first_asteroid_small_sprite + l].yDir = randomizer.get(-10, 10) * (0.006f);
+				float initAsteroidRot = randomizer.get(0, 360);
 				sprites[first_asteroid_small_sprite + l].rotate(initAsteroidRot);
 				sprites[first_asteroid_small_sprite + l].missileRotation = initAsteroidRot;
-
 				sprites[first_asteroid_small_sprite + l].asteroidSize = 2;
 			}
+
 			//and the rest.
 			for (int m = 0; m != num_tiny_asteroids; ++m)
 			{
 				assert(first_asteroid_tiny_sprite + m <= last_asteroid_tiny_sprite);
 
 				sprites[first_asteroid_tiny_sprite + m].init(
-					asteroid, 20, 0, 0.2f, 0.2f);
+					asteroid3, 20, 0, 0.3f, 0.3f);
 				sprites[first_asteroid_tiny_sprite + m].is_enabled() = false;
-				sprites[first_asteroid_tiny_sprite + m].xDir = ((std::rand() % 20) - 10) * 0.01f;
-				sprites[first_asteroid_tiny_sprite + m].yDir = ((std::rand() % 20) - 10) * 0.01f;
-				float initAsteroidRot = rand() % 360;
+				sprites[first_asteroid_tiny_sprite + m].xDir = randomizer.get(-10, 10) * (0.008f);
+				sprites[first_asteroid_tiny_sprite + m].yDir = randomizer.get(-10, 10) * (0.008f);
+				float initAsteroidRot = randomizer.get(0, 360);
 				sprites[first_asteroid_tiny_sprite + m].rotate(initAsteroidRot);
 				sprites[first_asteroid_tiny_sprite + m].missileRotation = initAsteroidRot;
 				sprites[first_asteroid_tiny_sprite + m].asteroidSize = 3;
 			}
-
 		}
 
 		//guess
@@ -380,6 +385,7 @@ namespace octet {
 		}
 		// called when a bullet hits an enemy
 		void on_hit_asteroid() {
+
 			ALuint source = get_sound_source();
 			alSourcei(source, AL_BUFFER, enemy_hit);
 			alSourcePlay(source);
@@ -387,11 +393,6 @@ namespace octet {
 			live_asteroids--;
 			score++;
 			printf("\n live asteroids: %i", live_asteroids);
-
-			//if (live_asteroids == 0)
-			//{
-			//	live_asteroids = num_asteroids;
-			//}
 		}
 
 		void TitleScreen()
@@ -412,8 +413,6 @@ namespace octet {
 			ALuint source = get_sound_source();
 			alSourcei(source, AL_BUFFER, player_hurt);
 			alSourcePlay(source);
-
-
 
 			//sprites[ship_sprite].set_relative(sprites[first_border_sprite + 3],-3.2f,0);
 
@@ -486,12 +485,13 @@ namespace octet {
 
 			for (int j = 0; j != num_asteroids; ++j)
 			{
-				sprite &asteroid = sprites[first_asteroid_sprite + j];
+				sprite &asteroid = sprites[first_asteroid_big_sprite + j];
+
 				if (asteroid.is_enabled() && sprites[ship_sprite].collides_with(asteroid))
 				{
-					deathTimer = 60;
+					deathTimer = 40;
 					num_lives--;
-					camerashake = 5;
+					camerashake = 4;
 					sprites[ship_sprite].is_enabled() = false;
 
 					for (int i = 0; i != num_explosions; ++i)
@@ -619,13 +619,8 @@ namespace octet {
 						//life of missile
 						sprites[first_missile_sprite + i].missileTimer = 20;
 
-						//adding bullet spread
-						//float spread = rand() % 15 - 7.5f;
-
 						//warp and set rotation
 						sprites[first_missile_sprite + i].set_relative(sprites[ship_sprite], 0, 0.02f);
-						//sprites[first_missile_sprite + i].rotate(spread);
-						//set the missile's rotation float to the ship's rotation thing -- NEEDS THIS !!!
 						sprites[first_missile_sprite + i].missileRotation = sprites[ship_sprite].playerRotation;
 
 						//TIMER INBETWEEN PLAYER SHOTS!!!
@@ -645,9 +640,11 @@ namespace octet {
 
 		// animate the missiles
 		void move_missiles() {
+
 			for (int i = 0; i != num_missiles; ++i)
 			{
 				sprite &missile = sprites[first_missile_sprite + i];
+
 				if (missile.is_enabled())
 				{
 					float missile_speed = 0.26f;
@@ -656,113 +653,137 @@ namespace octet {
 
 					missile.translate(0, missile_speed);
 
-					for (int j = 0; j != num_asteroids; ++j)
+					for (int j = 0; j < num_big_asteroids; ++j)
 					{
-						sprite &asteroid = sprites[first_asteroid_sprite + j];
+						sprite &asteroid = sprites[first_asteroid_big_sprite + j];
 						// if bullet hits asteroid
 						if (missile.collides_with(asteroid))
 						{
-							//warp 2 smaller ones over to you...
+							bigCounter++;
 							missile.is_enabled() = false;
 							missile.translate(20, 0);
 
-							if (asteroid.asteroidSize == 1)
+							for (int a = 0; a < num_small_asteroids; a++)
 							{
-								for (int a = 0; a != num_small_asteroids; a++)
+								if (!sprites[first_asteroid_small_sprite + a].is_enabled()
+									&& !sprites[first_asteroid_small_sprite + a+1].is_enabled())
 								{
-									if (!sprites[first_asteroid_small_sprite + a].is_enabled())
+									//warp 2 smaller ones over to you...
+									for (int x = 0; x < 2; x++)
 									{
-										for (int x = 0; x < 2; x++)
+										sprites[first_asteroid_small_sprite + a + x].set_relative(asteroid, 0, 0);
+										sprites[first_asteroid_small_sprite + a + x].rotate(-asteroid.missileRotation);
+										sprites[first_asteroid_small_sprite + a + x].missileRotation = 0;
+										sprites[first_asteroid_small_sprite + a + x].is_enabled() = true;
+										if (x == 1)
 										{
-											sprites[first_asteroid_small_sprite + a + x].set_relative(asteroid, 0, 0);
-											sprites[first_asteroid_small_sprite + a + x].rotate(-asteroid.missileRotation);
-											sprites[first_asteroid_small_sprite + a + x].missileRotation = 0;
-											sprites[first_asteroid_small_sprite + a + x].is_enabled() = true;
+											printf("\n ting hit.");
+											asteroid.is_enabled() = false;
+											on_hit_asteroid();
+											asteroid.translate(20, 0);
+											goto next_missile;
 										}
-
-										break;
 									}
-									break;
 								}
 							}
-							else if (asteroid.asteroidSize == 2)
-							{
-								for (int b = 0; b != num_tiny_asteroids; b++)
-								{
-									if (!sprites[first_asteroid_tiny_sprite + b].is_enabled())
-									{
-										for (int x = 0; x < 2; x++)
-										{
-											sprites[first_asteroid_tiny_sprite + b + x].set_relative(asteroid, 0, 0);
-											sprites[first_asteroid_tiny_sprite + b + x].rotate(-asteroid.missileRotation);
-											sprites[first_asteroid_tiny_sprite + b + x].missileRotation = 0;
-											sprites[first_asteroid_tiny_sprite + b + x].is_enabled() = true;
-										}
-
-										break;
-									}
-									break;
-								}
-							}
-							else
-							{
-								printf("\n %i, small ship hit", asteroid.asteroidSize);
-							}
-							on_hit_asteroid();
-
-							asteroid.is_enabled() = false;
-							asteroid.translate(20, 0);
-
-							goto next_missile;
 						}
-						//when time runs out, disable missile.
-						if (missile.missileTimer <= 0)
+					}
+					for (int j = 0; j < num_small_asteroids; ++j)
+					{
+						sprite &asteroid = sprites[first_asteroid_small_sprite + j];
+						// if bullet hits asteroid
+						if (missile.collides_with(asteroid))
 						{
+							smallCounter++;
 							missile.is_enabled() = false;
 							missile.translate(20, 0);
+
+							for (int a = 0; a < num_tiny_asteroids; a++)
+							{
+								if (!sprites[first_asteroid_tiny_sprite + a].is_enabled()
+									&& !sprites[first_asteroid_tiny_sprite + a + 1].is_enabled())
+								{
+									for (int x = 0; x < 2; x++)
+									{
+										sprites[first_asteroid_tiny_sprite + a + x].set_relative(asteroid, 0, 0);
+										sprites[first_asteroid_tiny_sprite + a + x].rotate(-asteroid.missileRotation);
+										sprites[first_asteroid_tiny_sprite + a + x].missileRotation = 0;
+										sprites[first_asteroid_tiny_sprite + a + x].is_enabled() = true;
+										if (x == 1)
+										{
+											printf("\n ting hit.");
+											asteroid.is_enabled() = false;
+											on_hit_asteroid();
+											asteroid.translate(20, 0);
+											goto next_missile;
+										}
+									}
+								}
+							}
+						}
+					}
+					for (int j = 0; j != num_tiny_asteroids; ++j)
+					{
+						sprite &asteroid = sprites[first_asteroid_tiny_sprite + j];
+
+						if (missile.collides_with(asteroid))
+						{
+							tinyCounter++;
+							missile.is_enabled() = false;
+							missile.translate(20, 0);
+							asteroid.is_enabled() = false;
+							on_hit_asteroid();
+							asteroid.translate(20, 0);
+							printf("hit a tiny fucker");
 							goto next_missile;
 						}
 					}
 
-					if (missile.collides_with(sprites[first_border_sprite + 3]))
+					//when time runs out, disable missile.
+					if (missile.missileTimer <= 0)
 					{
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.set_relative(missile, -6, 0);			//move it left
-						missile.rotate(tempRotation);					//return rotation to orginial rot
-					}
-					//left wall...
-					if (missile.collides_with(sprites[first_border_sprite + 2]))
-					{
-
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.set_relative(missile, 6, 0);			//move it left
-						missile.rotate(tempRotation);								//return rotation to orginial rot
-
-					}
-					//bottom wall...
-					if (missile.collides_with(sprites[first_border_sprite + 0]))
-					{
-
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.set_relative(missile, 0, 6);			//move it left
-						missile.rotate(tempRotation);								//return rotation to orginial rot
-
-					}
-					//top wall...
-					if (missile.collides_with(sprites[first_border_sprite + 1]))
-					{
-
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						missile.translate(0, -6);		//move it left
-						missile.rotate(tempRotation);								//return rotation to orginial rot
-
+						missile.is_enabled() = false;
+						missile.translate(20, 0);
+						goto next_missile;
 					}
 				}
-			next_missile:;
+
+				for (int i = 0; i < 4; i++)
+				{
+					if (missile.collides_with(sprites[first_border_sprite + i]))
+					{
+						float tempRotation = missile.missileRotation;
+						missile.rotate(-missile.missileRotation);		//make rotation 0
+						//
+						if (missile.collides_with(sprites[first_border_sprite + 3]))
+						{
+							missile.set_relative(missile, -6, 0);			//move it left
+						}
+						//left wall...
+						if (missile.collides_with(sprites[first_border_sprite + 2]))
+						{
+							missile.set_relative(missile, 6, 0);			//move it left
+						}
+						//bottom wall...
+						if (missile.collides_with(sprites[first_border_sprite + 0]))
+						{
+							missile.set_relative(missile, 0, 6);			//move it left
+						}
+						//top wall...
+						if (missile.collides_with(sprites[first_border_sprite + 1]))
+						{
+							missile.set_relative(missile, 0, -6);		//move it left
+						}
+						//
+						missile.rotate(tempRotation);					//return rotation to orginial rot
+					}
+				}
+			}
+		next_missile:;
+
+			if (is_key_going_down(key_alt))
+			{
+				printf("\n \n %i, %i, %i.", bigCounter, smallCounter, tinyCounter);
 			}
 		}
 
@@ -789,87 +810,79 @@ namespace octet {
 			}
 		}
 
-		void resetCheck()
-		{
-			if (live_asteroids == 0 || is_key_going_down(key_alt))
-			{
-				live_asteroids = num_asteroids;
-				for (int i = 0; i != num_big_asteroids; ++i)
-				{
-					sprite &asteroid = sprites[first_asteroid_sprite + i];
-					asteroid.translate(-20, 0);
-				}
-			}
-		}
-
-		// move the array of enemies
+		// move the array of asteroids
 		void move_asteroids()
 		{
-			//
-			// normal size
 			for (int j = 0; j != num_asteroids; ++j)
 			{
-				sprite &asteroid = sprites[first_asteroid_sprite + j];
-				if (asteroid.is_enabled()) {
+				sprite &asteroid = sprites[first_asteroid_big_sprite + j];
 
-					//check to see if it somehhow warped out of the world...
-					if (-4 < sprites[ship_sprite].modelToWorld[3][0] < -4
-						||
-						-4 < sprites[ship_sprite].modelToWorld[3][1] < -4)
-					{
-						printf("DFHIUASDFHASIUDFHASIUDFHASIUDFHASIUDFHASIUDFHASIUF");
-					}
-					asteroid.translate(asteroid.xDir, asteroid.yDir);
+				if (asteroid.is_enabled())
+				{
+					asteroid.translate(asteroid.xDir * asteroid_velocity, asteroid.yDir * asteroid_velocity);
 
-					//	WALL COLLISION BABY!!!
-					//if it hits right wall...
-					if (asteroid.collides_with(sprites[first_border_sprite + 3]))
+					for (int i = 0; i < 4; i++)
 					{
-						float tempRotation = asteroid.missileRotation;
-						asteroid.rotate(-asteroid.missileRotation);		//make rotation 0
-						asteroid.set_relative(asteroid, -6, 0);			//move it left
-						asteroid.rotate(tempRotation);						//return rotation to orginial rot
-					}
-					//left wall...
-					if (asteroid.collides_with(sprites[first_border_sprite + 2]))
-					{
-						float tempRotation = asteroid.missileRotation;
-						asteroid.rotate(-asteroid.missileRotation);		//make rotation 0
-						asteroid.set_relative(asteroid, 6, 0);			//move it right
-						asteroid.rotate(tempRotation);						//return rotation to orginial rot
-					}
-					//bottom wall...
-					if (asteroid.collides_with(sprites[first_border_sprite + 0]))
-					{
-						float tempRotation = asteroid.missileRotation;
-						asteroid.rotate(-asteroid.missileRotation);		//make rotation 0
-						asteroid.set_relative(asteroid, 0, 6);			//move it up
-						asteroid.rotate(tempRotation);						//return rotation to orginial rot
-
-					}
-					//top wall...
-					if (asteroid.collides_with(sprites[first_border_sprite + 1]))
-					{
-						float tempRotation = asteroid.missileRotation;
-						asteroid.rotate(-asteroid.missileRotation);		//make rotation 0
-						asteroid.set_relative(asteroid, 0, -6);			//move it down
-						asteroid.rotate(tempRotation);						//return rotation to orginial rot
+						if (asteroid.collides_with(sprites[first_border_sprite + i]))
+						{
+							float tempRotation = asteroid.missileRotation;		//store rotation
+							asteroid.rotate(-asteroid.missileRotation);			//make rotation 0
+							//
+							//if it hits right wall...
+							if (asteroid.collides_with(sprites[first_border_sprite + 3]))
+							{
+								asteroid.set_relative(asteroid, -6, 0);			//move it left
+							}
+							//left wall...
+							if (asteroid.collides_with(sprites[first_border_sprite + 2]))
+							{
+								asteroid.set_relative(asteroid, 6, 0);			//move it right
+							}
+							//bottom wall...
+							if (asteroid.collides_with(sprites[first_border_sprite + 0]))
+							{
+								asteroid.set_relative(asteroid, 0, 6);			//move it up
+							}
+							//top wall...
+							if (asteroid.collides_with(sprites[first_border_sprite + 1]))
+							{
+								asteroid.set_relative(asteroid, 0, -6);			//move it down
+							}
+							//
+							asteroid.rotate(tempRotation);						//return rotation to original rot
+						}
 					}
 				}
 			}
+
+
 		}
 
-		// check if any invaders hit the sides.
-		bool invaders_collide(sprite &border) {
-			for (int j = 0; j != num_asteroids; ++j) {
-				sprite &asteroid = sprites[first_asteroid_sprite + j];
-				if (asteroid.is_enabled() && asteroid.collides_with(border)) {
-					return true;
+		void resetCheck()
+		{
+			if (live_asteroids == 0)
+			{
+				resetTimer--;
+				printf("\n move all asteroids now!!!");
+				if (resetTimer <= 0)
+				{
+					for (int i = 0; i < num_big_asteroids; i++)
+					{
+						sprite &asteroid = sprites[first_asteroid_big_sprite + i];
+						float pointNum = (i*0.5f) / num_big_asteroids;
+						float angle = pointNum*3.14159265;
+						float x = sin(angle * 4) * 2.5f;
+						float y = cos(angle * 4) * 2.5f;
+						asteroid.modelToWorld[3][0] = x;
+						asteroid.modelToWorld[3][1] = y;
+						asteroid.is_enabled() = true;
+					}
+					live_asteroids = num_asteroids;
+					asteroid_velocity += 0.15f;
+					resetTimer = 60;
 				}
 			}
-			return false;
 		}
-
 		void draw_text(texture_shader &shader, float x, float y, float scale, const char *text) {
 			mat4t modelToWorld;
 			modelToWorld.loadIdentity();
@@ -935,10 +948,10 @@ namespace octet {
 			// set the border to white for clarity
 			GLuint white = resource_dict::get_texture_handle(GL_RGB, "#ffffff");
 			GLuint black = resource_dict::get_texture_handle(GL_RGB, "#000000");
-			sprites[first_border_sprite + 0].init(black, 0, -3.3f, 6, 0.2f);		//bottom
-			sprites[first_border_sprite + 1].init(black, 0, 3.3f, 6, 0.2f);		//top
-			sprites[first_border_sprite + 2].init(black, -3.3f, 0, 0.2f, 6);		//left
-			sprites[first_border_sprite + 3].init(black, 3.3f, 0, 0.2f, 6);		//guess
+			sprites[first_border_sprite + 0].init(black, 0, -3.3f, 10, 0.2f);		//bottom
+			sprites[first_border_sprite + 1].init(black, 0, 3.3f, 10, 0.2f);		//top
+			sprites[first_border_sprite + 2].init(black, -3.3f, 0, 0.2f, 10);		//left
+			sprites[first_border_sprite + 3].init(black, 3.3f, 0, 0.2f, 10);		//guess
 
 			// use the missile texture
 			GLuint missile = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/missile.gif");
@@ -974,7 +987,7 @@ namespace octet {
 			// sundry counters and game state.
 			missiles_disabled = 0;
 			bombs_disabled = 50;		//5 seconds before enemies can shoot
-			invader_velocity = 0.01f;
+			asteroid_velocity = 1.0f;
 			live_asteroids = num_asteroids;
 			num_lives = 3;
 			game_over = false;
@@ -994,7 +1007,6 @@ namespace octet {
 				return;
 			}
 
-
 			TitleScreen();
 
 			move_ship();
@@ -1011,25 +1023,11 @@ namespace octet {
 
 			move_asteroids();
 
-			//resetCheck();
+			resetCheck();
 
 			//FileReader().ExtractFileContents();
 
-			//move_invaders(invader_velocity, 0);
-			//move_invaders((x1-10)/100, (y1-10) / 100);
-
-			sprite &border = sprites[first_border_sprite + (invader_velocity < 0 ? 2 : 3)];
-
-			//
-
-			/*if (invaders_collide()) {
-
-				invader_velocity = -invader_velocity;
-				move_invaders(invader_velocity, -0.1f);
-			}
-			*/
-			//sprites[ship_sprite].modelToWorld[3][0] = 0;
-
+			//Camera Shake
 			if (camerashake > 0)
 			{
 				camerashake -= 0.1f;
@@ -1040,9 +1038,9 @@ namespace octet {
 				cameraToWorld[3][0] = 0;
 				cameraToWorld[3][1] = 0;
 			}
-			cameraToWorld[3][0] = camerashake*(((rand() % 2) - 0.5f)*0.02f);
-			cameraToWorld[3][1] = camerashake*(((rand() % 2) - 0.5f)*0.02f);
-			cameraToWorld[3][2] = 3 - camerashake*(((rand() % 2) - 0.5f)*0.08f);
+			cameraToWorld[3][0] = camerashake*(randomizer.get(-.5f,1.5f)*0.02f);
+			cameraToWorld[3][1] = camerashake*(randomizer.get(-.5f, 1.5f)*0.02f);
+			cameraToWorld[3][2] = 3 - camerashake*(randomizer.get(-.5f, 1.5f)*0.08f);
 		}
 
 		// this is called to draw the world
