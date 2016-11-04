@@ -924,7 +924,7 @@ namespace octet {
 				}
 			}
 
-			if (num_lives == 0) {
+			if (num_lives <= 0) {
 				gameOverTimer--;
 			}
 

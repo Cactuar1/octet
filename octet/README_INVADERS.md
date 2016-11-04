@@ -1,3 +1,7 @@
+LINK TO YOUTUBE VIDEO:
+https://www.youtube.com/watch?v=NaGSVIhJRpQ&feature=youtu.be
+
+
 Introduction to Programming -- Luke Sanderson
 
 ASTEROIDS --	README
