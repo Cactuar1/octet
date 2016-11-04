@@ -18,6 +18,7 @@
 //
 
 #include <fstream> // functions for handling input output
+#include <memory>
 
 namespace octet {
 
@@ -36,8 +37,6 @@ namespace octet {
 		// true if this sprite is enabled.
 		bool enabled;
 
-
-
 	public:
 
 		mat4t modelToWorld;
@@ -51,10 +50,10 @@ namespace octet {
 		float xDir;						//for the asteroids' random X velocity at start
 		float yDir;						//for the asteroids' random Y velocity at start
 
-		float playerRotation = 0;		//keeping track of the player's rotation	
-		float missileRotation = 0;		//keeping track of the bullet's and asteroid's rotation
+		float asteroidRotation = 0;		//keeping track of the bullet's and asteroid's rotation
 
 		int asteroidSize = 0;			//1 for big, 2 for small, 3 for tiny.
+
 
 		vec3 velocity;
 
@@ -64,14 +63,20 @@ namespace octet {
 
 		float explosion_speed;
 
+		float colour[4] = { 1,1,1,1 };
 
-		void init(int _texture, float x, float y, float w, float h) {
+
+		void init(int _texture, float x, float y, float w, float h, float _colour[4]) {
 			modelToWorld.loadIdentity();
 			modelToWorld.translate(x, y, 0);
 			halfWidth = w * 0.5f;
 			halfHeight = h * 0.5f;
 			texture = _texture;
 			enabled = true;
+			for (int i = 0; i < 4; i++)
+			{
+				colour[i] = _colour[i];
+			}
 		}
 
 		void render(texture_shader &shader, mat4t &cameraToWorld) {
@@ -89,7 +94,8 @@ namespace octet {
 			// use "old skool" rendering
 			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
 			//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-			shader.render(modelToProjection, 0);
+
+			shader.render(modelToProjection, 0, colour);
 
 			// this is an array of the positions of the corners of the sprite in 3D
 			// a straight "float" here means this array is being generated here at runtime.
@@ -132,7 +138,6 @@ namespace octet {
 		//rotate the object
 		void rotate(float x) {
 			modelToWorld.rotateZ(x);
-			playerRotation += x;
 		}
 
 		void scale(float x)
@@ -160,15 +165,6 @@ namespace octet {
 				(fabsf(dy) < halfHeight + rhs.halfHeight)
 				;
 		}
-
-		/*bool is_above(const sprite &rhs, float margin) const {
-			float dx = rhs.modelToWorld[3][0] - modelToWorld[3][0];
-
-			return
-				(fabsf(dx) < halfWidth + margin)
-				;
-		}
-		*/
 
 		bool &is_enabled() {
 			return enabled;
@@ -207,11 +203,12 @@ namespace octet {
 
 			shipC_sprite,
 			shipSpriteFull,
-			shipSpriteEmpty,
 			explosionSprite,
 
 			first_explosion_sprite,
 			last_explosion_sprite = first_explosion_sprite + num_explosions - 1,
+
+			ufo_sprite,
 
 			first_asteroid_big_sprite,
 			last_asteroid_big_sprite = first_asteroid_big_sprite + num_big_asteroids - 1,
@@ -284,6 +281,9 @@ namespace octet {
 		ALuint warp1;
 		ALuint warp2;
 
+		ALuint ufoHit;
+		ALuint ufoAppear;
+
 		ALuint enemy_hit;
 
 		ALuint player_shoot;
@@ -310,30 +310,35 @@ namespace octet {
 		ALuint get_sound_source() { return sources[cur_source++ % num_sound_sources]; }
 
 		//create Invaders
-		void create_Asteroids()
+		void create_Asteroids(float colour[4])
 		{
 
 			GLuint asteroid = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/asteroid1.gif");
-			GLuint asteroid2 = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/asteroid1.gif");
-			GLuint asteroid3 = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/asteroid1.gif");
+
+			GLuint ufo = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/ufo.gif");
+			sprites[ufo_sprite].init(ufo, 20,0, 0.4f, 0.4f, colour);
+			sprites[ufo_sprite].is_enabled() = false;
+
 
 			//first 6 are big
 			for (int k = 0; k != num_big_asteroids; ++k)
 			{
 				assert(first_asteroid_big_sprite + k <= last_asteroid_big_sprite);
 
+				//create in a circle.
 				float pointNum = (k*0.5f) / num_big_asteroids;
 				float angle = pointNum*3.14159265;
 				float x = sin(angle * 4) * 2.5f;
 				float y = cos(angle * 4) * 2.5f;
+				//
 
 				sprites[first_asteroid_big_sprite + k].init(
-					asteroid, x, y, 0.6f, 0.6f);
+					asteroid, x, y, 0.6f, 0.6f, colour);
 				sprites[first_asteroid_big_sprite + k].xDir = randomizer.get(-10, 10) * (0.003f);
 				sprites[first_asteroid_big_sprite + k].yDir = randomizer.get(-10, 10) * (0.003f);
 				float initAsteroidRot = randomizer.get(0, 360);
 				sprites[first_asteroid_big_sprite + k].rotate(initAsteroidRot);
-				sprites[first_asteroid_big_sprite + k].missileRotation = initAsteroidRot;
+				sprites[first_asteroid_big_sprite + k].asteroidRotation = initAsteroidRot;
 				sprites[first_asteroid_big_sprite + k].asteroidSize = 1;
 			}
 			//next few are smaller and start dead
@@ -342,13 +347,13 @@ namespace octet {
 				assert(first_asteroid_small_sprite + l <= last_asteroid_small_sprite);
 
 				sprites[first_asteroid_small_sprite + l].init(
-					asteroid2, 20, 0, 0.4f, 0.4f);
+					asteroid, 20, 0, 0.4f, 0.4f, colour);
 				sprites[first_asteroid_small_sprite + l].is_enabled() = false;
 				sprites[first_asteroid_small_sprite + l].xDir = randomizer.get(-10, 10) * (0.006f);
 				sprites[first_asteroid_small_sprite + l].yDir = randomizer.get(-10, 10) * (0.006f);
 				float initAsteroidRot = randomizer.get(0, 360);
 				sprites[first_asteroid_small_sprite + l].rotate(initAsteroidRot);
-				sprites[first_asteroid_small_sprite + l].missileRotation = initAsteroidRot;
+				sprites[first_asteroid_small_sprite + l].asteroidRotation = initAsteroidRot;
 				sprites[first_asteroid_small_sprite + l].asteroidSize = 2;
 			}
 
@@ -358,30 +363,30 @@ namespace octet {
 				assert(first_asteroid_tiny_sprite + m <= last_asteroid_tiny_sprite);
 
 				sprites[first_asteroid_tiny_sprite + m].init(
-					asteroid3, 20, 0, 0.3f, 0.3f);
+					asteroid, 20, 0, 0.3f, 0.3f, colour);
 				sprites[first_asteroid_tiny_sprite + m].is_enabled() = false;
 				sprites[first_asteroid_tiny_sprite + m].xDir = randomizer.get(-10, 10) * (0.008f);
 				sprites[first_asteroid_tiny_sprite + m].yDir = randomizer.get(-10, 10) * (0.008f);
 				float initAsteroidRot = randomizer.get(0, 360);
 				sprites[first_asteroid_tiny_sprite + m].rotate(initAsteroidRot);
-				sprites[first_asteroid_tiny_sprite + m].missileRotation = initAsteroidRot;
+				sprites[first_asteroid_tiny_sprite + m].asteroidRotation = initAsteroidRot;
 				sprites[first_asteroid_tiny_sprite + m].asteroidSize = 3;
 			}
 		}
 
-		//guess
-		void create_Player()
+		//creates player and various objects related to it
+		void create_Player(float colour[4])
 		{
 			GLuint ship = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/ship.gif");
-			sprites[ship_sprite].init(ship, 0, 0, 0.22f, 0.22f);
+			sprites[ship_sprite].init(ship, 0, 0, 0.22f, 0.22f, colour);
 
 			GLuint shipblastfull = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/shipBlastFull.gif");
-			sprites[shipSpriteFull].init(shipblastfull, 0, 2, 0.25f, 0.25f);
+			sprites[shipSpriteFull].init(shipblastfull, 0, 2, 0.25f, 0.25f, colour);
 
 			GLuint explosion = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/explosion.gif");
 			for (int i = 0; i != num_explosions; ++i)
 			{
-				sprites[explosionSprite + i].init(explosion, 20, 0, 0.15f, 0.15f);
+				sprites[explosionSprite + i].init(explosion, 20, 0, 0.15f, 0.15f, colour);
 				sprites[explosionSprite + i].is_enabled() = false;
 			}
 
@@ -395,6 +400,20 @@ namespace octet {
 
 			live_asteroids--;
 			score++;
+	
+			int randUfo = randomizer.get(0, 20);
+			if (randUfo == 0 && !sprites[ufo_sprite].is_enabled())
+			{
+				sprite &ufo = sprites[ufo_sprite];
+				ufo.modelToWorld[3][0] = -4;
+				ufo.modelToWorld[3][1] = randomizer.get(-3.0f,3.0f);
+
+				ALuint source = get_sound_source();
+				alSourcei(source, AL_BUFFER, ufoAppear);
+				alSourcePlay(source);
+
+				ufo.is_enabled() = true;
+			}
 		}
 
 		void TitleScreen()
@@ -404,8 +423,10 @@ namespace octet {
 				sprites[start_sprite].translate(40, 0);
 				sprites[press_start_sprite2].translate(40, 0);
 
-				create_Asteroids();
-				create_Player();
+				float white[4] = { 1,1,1,1 };
+
+				create_Asteroids(white);
+				create_Player(white);
 
 				titleScreen = false;
 			}
@@ -436,6 +457,11 @@ namespace octet {
 
 		// use the keyboard to move the ship
 		void move_ship() {
+
+			if (deathTimer > 0)
+			{
+				float randColour[4] = { randomizer.get(0,1),randomizer.get(0,1),randomizer.get(0,1),1 };
+			}
 
 			const float shipRotateSpeed = 8;
 
@@ -545,7 +571,6 @@ namespace octet {
 					sprites[press_start_sprite].set_relative(sprites[first_border_sprite + 3], 30, 0);
 					sprites[ship_sprite].modelToWorld[3][0] = 0;
 					sprites[ship_sprite].modelToWorld[3][1] = 0;
-					sprites[ship_sprite].playerRotation = 0;
 					sprites[ship_sprite].is_enabled() = true;
 					deathTimer = 0;
 					dead = false;
@@ -641,7 +666,6 @@ namespace octet {
 
 						//warp and set rotation
 						sprites[first_missile_sprite + i].set_relative(sprites[ship_sprite], 0, 0.02f);
-						sprites[first_missile_sprite + i].missileRotation = sprites[ship_sprite].playerRotation;
 
 						//TIMER INBETWEEN PLAYER SHOTS!!!
 						missiles_disabled = 1;
@@ -691,9 +715,10 @@ namespace octet {
 									//warp 2 smaller ones over to you...
 									for (int x = 0; x < 2; x++)
 									{
+										float tempRot = sprites[first_asteroid_small_sprite + a + x].asteroidRotation;
 										sprites[first_asteroid_small_sprite + a + x].set_relative(asteroid, 0, 0);
-										sprites[first_asteroid_small_sprite + a + x].rotate(-asteroid.missileRotation);
-										sprites[first_asteroid_small_sprite + a + x].missileRotation = 0;
+										sprites[first_asteroid_small_sprite + a + x].rotate(tempRot);
+										sprites[first_asteroid_small_sprite + a + x].asteroidRotation = tempRot;
 										sprites[first_asteroid_small_sprite + a + x].is_enabled() = true;
 										if (x == 1)
 										{
@@ -724,9 +749,10 @@ namespace octet {
 								{
 									for (int x = 0; x < 2; x++)
 									{
+										float tempRot = sprites[first_asteroid_tiny_sprite + a + x].asteroidRotation;
 										sprites[first_asteroid_tiny_sprite + a + x].set_relative(asteroid, 0, 0);
-										sprites[first_asteroid_tiny_sprite + a + x].rotate(-asteroid.missileRotation);
-										sprites[first_asteroid_tiny_sprite + a + x].missileRotation = 0;
+										sprites[first_asteroid_tiny_sprite + a + x].rotate(tempRot);
+										sprites[first_asteroid_tiny_sprite + a + x].asteroidRotation = tempRot;
 										sprites[first_asteroid_tiny_sprite + a + x].is_enabled() = true;
 										if (x == 1)
 										{
@@ -756,6 +782,23 @@ namespace octet {
 						}
 					}
 
+					if (missile.collides_with(sprites[ufo_sprite]))
+					{
+						missile.is_enabled() = false;
+						missile.translate(20, 0);
+						sprites[ufo_sprite].is_enabled() = false;
+						sprites[ufo_sprite].translate(20,0);
+						score += 10;
+
+						ALuint source = get_sound_source();
+						alSourcei(source, AL_BUFFER, ufoHit);
+						alSourcePlay(source);
+
+						goto next_missile;
+					}
+
+
+
 					//when time runs out, disable missile.
 					if (missile.missileTimer <= 0)
 					{
@@ -769,30 +812,26 @@ namespace octet {
 				{
 					if (missile.collides_with(sprites[first_border_sprite + i]))
 					{
-						float tempRotation = missile.missileRotation;
-						missile.rotate(-missile.missileRotation);		//make rotation 0
-						//
+						//right wall
 						if (missile.collides_with(sprites[first_border_sprite + 3]))
 						{
-							missile.set_relative(missile, -6, 0);			//move it left
+							missile.modelToWorld[3][0] = missile.modelToWorld[3][0] - 6;
 						}
 						//left wall...
 						if (missile.collides_with(sprites[first_border_sprite + 2]))
 						{
-							missile.set_relative(missile, 6, 0);			//move it left
+							missile.modelToWorld[3][0] = missile.modelToWorld[3][0] + 6;
 						}
 						//bottom wall...
 						if (missile.collides_with(sprites[first_border_sprite + 0]))
 						{
-							missile.set_relative(missile, 0, 6);			//move it left
+							missile.modelToWorld[3][1] = missile.modelToWorld[3][1] + 6;
 						}
 						//top wall...
 						if (missile.collides_with(sprites[first_border_sprite + 1]))
 						{
-							missile.set_relative(missile, 0, -6);		//move it left
+							missile.modelToWorld[3][1] = missile.modelToWorld[3][1] - 6;
 						}
-						//
-						missile.rotate(tempRotation);					//return rotation to orginial rot
 					}
 				}
 			}
@@ -810,35 +849,32 @@ namespace octet {
 				{
 					asteroid.translate(asteroid.xDir * asteroid_velocity, asteroid.yDir * asteroid_velocity);
 
+
+					//asteroid looping
 					for (int i = 0; i < 4; i++)
 					{
 						if (asteroid.collides_with(sprites[first_border_sprite + i]))
 						{
-							float tempRotation = asteroid.missileRotation;		//store rotation
-							asteroid.rotate(-asteroid.missileRotation);			//make rotation 0
-							//
-							//if it hits right wall...
+							//right wall...
 							if (asteroid.collides_with(sprites[first_border_sprite + 3]))
 							{
-								asteroid.set_relative(asteroid, -6, 0);			//move it left
+								asteroid.modelToWorld[3][0] = asteroid.modelToWorld[3][0] - 6;
 							}
 							//left wall...
 							if (asteroid.collides_with(sprites[first_border_sprite + 2]))
 							{
-								asteroid.set_relative(asteroid, 6, 0);			//move it right
+								asteroid.modelToWorld[3][0] = asteroid.modelToWorld[3][0] + 6;
 							}
 							//bottom wall...
 							if (asteroid.collides_with(sprites[first_border_sprite + 0]))
 							{
-								asteroid.set_relative(asteroid, 0, 6);			//move it up
+								asteroid.modelToWorld[3][1] = asteroid.modelToWorld[3][1] + 6;
 							}
 							//top wall...
 							if (asteroid.collides_with(sprites[first_border_sprite + 1]))
 							{
-								asteroid.set_relative(asteroid, 0, -6);			//move it down
+								asteroid.modelToWorld[3][1] = asteroid.modelToWorld[3][1] - 6;
 							}
-							//
-							asteroid.rotate(tempRotation);						//return rotation to original rot
 						}
 					}
 				}
@@ -847,6 +883,20 @@ namespace octet {
 
 		}
 
+		void move_ufo()
+		{
+			sprite &ufo = sprites[ufo_sprite];
+
+			if (ufo.is_enabled())
+			{
+				ufo.translate(0.05f, 0);
+			}
+			if (ufo.collides_with(sprites[first_border_sprite + 3]))
+			{
+				ufo.is_enabled() = false;
+				ufo.modelToWorld[3][0] = 20;
+			}
+		}
 		//resets all asteroids after round, and checks to see if game is ended.
 		void resetCheck()
 		{
@@ -901,6 +951,8 @@ namespace octet {
 
 				sprites[game_over_sprite].translate(20, 0);
 
+				sprites[ufo_sprite].translate(20, 0);
+
 
 				for (int j = 0; j < num_asteroids; j++)
 				{
@@ -940,6 +992,29 @@ namespace octet {
 			cameraToWorld[3][2] = 3 - camerashake*(randomizer.get(-.5f, 1.5f)*0.08f);
 		}
 
+		void ExtractFileContents()
+		{
+			std::ifstream my_file("location/ofMy/file.csv");
+
+			if (my_file.bad()) {  // Checks if something isn't right before we blunder ahead assuming it is!
+				printf("Can't read the file 😞");
+			}
+			else
+			{
+				while (my_file.eof() != true)
+				{
+					char buffer[100];  // Temporarily store each line here (recreated for each line)
+									   //std::getline(my_file, buffer, ',')
+									   //  Now loop across the buffer char array and do summut with each char.
+
+									   // Loop repeats for each new line.
+				}
+
+			}
+			printf("adfasdfasdfasdfasads");
+
+		}
+
 		void draw_text(texture_shader &shader, float x, float y, float scale, const char *text) {
 			mat4t modelToWorld;
 			modelToWorld.loadIdentity();
@@ -963,7 +1038,9 @@ namespace octet {
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, font_texture);
 
-			shader.render(modelToProjection, 0);
+			float white[4] = { 1,1,1,1 };
+
+			shader.render(modelToProjection, 0, white);
 
 			glVertexAttribPointer(attribute_pos, 3, GL_FLOAT, GL_FALSE, sizeof(bitmap_font::vertex), (void*)&vertices[0].x);
 			glEnableVertexAttribArray(attribute_pos);
@@ -988,33 +1065,37 @@ namespace octet {
 			// set up the matrices with a camera 5 units from the origin
 			cameraToWorld.loadIdentity();
 			cameraToWorld.translate(0, 0, 3);
-
+			float white[4] = { 1,1,1,1 };
+			float red[4] = { 1,0,0,1 };
+			float blue[4] = { 0,0,1,1 };
+			float green[4] = { 0,1,0,1 };
 			font_texture = resource_dict::get_texture_handle(GL_RGBA, "assets/big_0.gif");
 
 			GLuint GameOver = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/GameOver.gif");
-			sprites[game_over_sprite].init(GameOver, 20, 0, 5,4);
+			sprites[game_over_sprite].init(GameOver, 20, 0, 5,4,white);
 
 			GLuint Start = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/Start.gif");
-			sprites[start_sprite].init(Start, 0, 0, 5, 4);
+			sprites[start_sprite].init(Start, 0, 0, 5, 4,white);
 
 			GLuint PressSpace = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/PressSpaceToContinue.gif");
-			sprites[press_start_sprite].init(PressSpace, 30, 0, 5, 4);
+			sprites[press_start_sprite].init(PressSpace, 30, 0, 5, 4,white);
 
 			GLuint PressStart = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/PressSpaceToStart.gif");
-			sprites[press_start_sprite2].init(PressStart, 0, -2.5f, 5, 4);
+			sprites[press_start_sprite2].init(PressStart, 0, -2.5f, 5, 4,red);
 
 			// set the border to black
 			GLuint black = resource_dict::get_texture_handle(GL_RGB, "#000000");
-			sprites[first_border_sprite + 0].init(black, 0, -3.3f, 10, 0.2f);		//bottom
-			sprites[first_border_sprite + 1].init(black, 0, 3.3f, 10, 0.2f);		//top
-			sprites[first_border_sprite + 2].init(black, -3.3f, 0, 0.2f, 10);		//left
-			sprites[first_border_sprite + 3].init(black, 3.3f, 0, 0.2f, 10);		//guess
+			float blackC[4] = { 0,0,0,1 };
+			sprites[first_border_sprite + 0].init(black, 0, -3.3f, 10, 0.2f,blackC);		//bottom
+			sprites[first_border_sprite + 1].init(black, 0, 3.3f, 10, 0.2f,blackC);		//top
+			sprites[first_border_sprite + 2].init(black, -3.3f, 0, 0.2f, 10,blackC);		//left
+			sprites[first_border_sprite + 3].init(black, 3.3f, 0, 0.2f, 10,blackC);		//guess
 
 			// use the missile texture
 			GLuint missile = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/missile.gif");
 			for (int i = 0; i != num_missiles; ++i) {
 				// create missiles off-screen
-				sprites[first_missile_sprite + i].init(missile, 0, 0, 0.08f, 0.08f);
+				sprites[first_missile_sprite + i].init(missile, 20, 0, 0.08f, 0.08f,white);
 				sprites[first_missile_sprite + i].is_enabled() = false;
 			}
 
@@ -1022,6 +1103,10 @@ namespace octet {
 
 			warp1 = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/warp1.wav");
 			warp2 = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/warp2.wav");
+
+			ufoHit = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/hitUfo.wav");
+			ufoAppear = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/appearUfo.wav");
+
 
 			player_shoot = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/player_shoot.wav");
 			player_hurt = resource_dict::get_sound_handle(AL_FORMAT_MONO16, "assets/invaderers/player_hurt.wav");
@@ -1040,9 +1125,6 @@ namespace octet {
 			num_lives = 4;
 			game_over = false;
 			score = 0;
-
-
-
 		}
 
 		// called every frame to move things
@@ -1064,12 +1146,14 @@ namespace octet {
 			move_explosions();
 
 			move_asteroids();
+			
+			move_ufo();
 
 			resetCheck();
 
 			cameraShake();
 
-			//FileReader().ExtractFileContents();
+			
 
 
 		}
@@ -1106,34 +1190,5 @@ namespace octet {
 			alListener3f(AL_POSITION, cpos.x(), cpos.y(), cpos.z());
 		}
 	};
-
-	class FileReader {
-
-	public:
-
-		void ExtractFileContents()
-		{
-			std::ifstream my_file("location/ofMy/file.csv");
-
-			if (my_file.bad()) {  // Checks if something isn't right before we blunder ahead assuming it is!
-				printf("Can't read the file 😞");
-			}
-			else
-			{
-				while (my_file.eof() != true)
-				{
-					char buffer[100];  // Temporarily store each line here (recreated for each line)
-									   //std::getline(my_file, buffer, ',')
-									   //  Now loop across the buffer char array and do summut with each char.
-
-									   // Loop repeats for each new line.
-				}
-
-			}
-
-		}
-
-	};
-
 }
 
