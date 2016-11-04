@@ -2,6 +2,9 @@ LINK TO YOUTUBE VIDEO:
 https://www.youtube.com/watch?v=NaGSVIhJRpQ&feature=youtu.be
 
 
+![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/1.png)
+![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/2.png)
+![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/3.png)
 
 
 Introduction to Programming -- Luke Sanderson
