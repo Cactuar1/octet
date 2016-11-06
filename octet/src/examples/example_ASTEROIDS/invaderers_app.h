@@ -17,8 +17,9 @@
 //   Audio
 //
 
-#include <fstream> // functions for handling input output
-#include <memory>
+#include <iostream>
+#include <fstream>
+#include <vector>
 
 namespace octet {
 
@@ -185,6 +186,8 @@ namespace octet {
 
 		// shader to draw a textured triangle
 		texture_shader texture_shader_;
+
+		std::vector<char> my_file_data_;
 
 		enum {
 			num_sound_sources = 8,
@@ -383,6 +386,7 @@ namespace octet {
 		//creates player and various objects related to it
 		void create_Player(float colour[4])
 		{
+
 			GLuint ship = resource_dict::get_texture_handle(GL_RGBA, "assets/invaderers/ship.gif");
 			sprites[ship_sprite].init(ship, 0, 0, 0.22f, 0.22f, colour);
 
@@ -987,28 +991,34 @@ namespace octet {
 			cameraToWorld[3][2] = 3 - camerashake*(randomizer.get(-.5f, 1.5f)*0.08f);
 		}
 
-		void ExtractFileContents()
+		/*void ExtractFileContents()
 		{
-			std::ifstream my_file("location/ofMy/file.csv");
+			std::ifstream input_file("assets/test.csv");  // Open the file
 
-			if (my_file.bad()) {  // Checks if something isn't right before we blunder ahead assuming it is!
-				printf("Can't read the file 😞");
+			if (input_file.bad())  // Check if file loaded
+			{
+				printf("\n file not loaded.");
 			}
 			else
 			{
-				while (my_file.eof() != true)
+				printf("file loaded!");
+
+				std::string line_buffer;  // Store current line here
+
+				while (!input_file.eof())
 				{
-					char buffer[100];  // Temporarily store each line here (recreated for each line)
-									   //std::getline(my_file, buffer, ',')
-									   //  Now loop across the buffer char array and do summut with each char.
+					std::getline(input_file, line_buffer); // Extract the current line to the buffer
 
-									   // Loop repeats for each new line.
+														   // Add each char from the temporary buffer to the permanent vector
+					for (int i = 0; i < line_buffer.length(); i++)
+					{
+						my_file_data_.push_back(line_buffer.at(i));
+					}
 				}
-
 			}
-			printf("adfasdfasdfasdfasads");
-
 		}
+		//didn't fancy working.
+		*/
 
 		void draw_text(texture_shader &shader, float x, float y, float scale, const char *text) {
 			mat4t modelToWorld;
@@ -1054,6 +1064,8 @@ namespace octet {
 		// this is called once OpenGL is initialized
 		void app_init() {
 
+			
+				
 			// set up the shader
 			texture_shader_.init();
 
@@ -1120,6 +1132,8 @@ namespace octet {
 			num_lives = 4;
 			game_over = false;
 			score = 0;
+
+			
 		}
 
 		// called every frame to move things

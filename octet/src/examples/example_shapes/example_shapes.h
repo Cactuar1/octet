@@ -16,6 +16,7 @@ namespace octet {
 		int rPlank_xInt = 28;
 		int rPlank_yInt = 6;
 
+		int speedMultiplier = 1;
 
 		int numPlanks = 20;
 		mesh_instance *m_bridge[20];
@@ -24,8 +25,6 @@ namespace octet {
 
 	public:
 
-		mat4t mat;
-		material *blue = new material(vec4(0, 0, 1, 1));
 
 		example_shapes(int argc, char **argv) : app(argc, argv) {
 		}
@@ -37,13 +36,13 @@ namespace octet {
 		/// this is called once OpenGL is initialized
 		void app_init()
 		{
+			mat4t mat;
 			app_scene = new visual_scene();
 			app_scene->create_default_camera_and_lights();
-			app_scene->get_camera_instance(0)->get_node()->translate(vec3(0, 0, numPlanks + (numPlanks*0.5f)));
+			app_scene->get_camera_instance(0)->get_node()->translate(vec3(0, 0, numPlanks*3));
 
 			material *red = new material(vec4(1, 0, 0, 1));
 			material *green = new material(vec4(0, 1, 0, 1));
-			material *purple = new material(vec4(1, 0, 1, 1));
 			material *black = new material(vec4(0,0,0, 1));
 
 			mat.loadIdentity();
@@ -53,7 +52,6 @@ namespace octet {
 
 
 			//create first green plank
-
 			mat.loadIdentity();
 			mat.translate(lPlank_xInt, lPlank_yInt, 0);
 			m_bridge[0] = app_scene->add_shape(mat, new mesh_box(vec3(0.1f, 0.1f, 10)), green, false);
@@ -76,6 +74,7 @@ namespace octet {
 
 			createSpring();
 		}
+		
 
 		void createSpring()
 		{
@@ -97,52 +96,58 @@ namespace octet {
 
 			if (is_key_going_down(key_space))
 			{
+				material *blue = new material(vec4(0, 0, 1, 1));
+
 				mat4t mat;
 
-			/*	mat.loadIdentity();
+				mat.loadIdentity();
 				mat.translate(0, 0, 0);
 				app_scene->add_shape(mat, new mesh_sphere(vec3(2, 2, 2), 2), blue, true);
 
-				ALuint source = get_sound_source();
-				alSourcei(source, AL_BUFFER, warp1);
-				alSourcePlay(source);
-				*/
+			}
 
+			if (is_key_down(key_shift))
+			{
+				speedMultiplier = 2;
+			}
+			else
+			{
+				speedMultiplier = 1;
 			}
 
 			if (is_key_going_down(key('D')))
 			{
-				lPlank_xInt++;
+				lPlank_xInt+=(speedMultiplier);
 			}
 			if (is_key_going_down(key('A')))
 			{
-				lPlank_xInt--;
+				lPlank_xInt-= (speedMultiplier);
 			}
 			if (is_key_going_down(key('W')))
 			{
-				lPlank_yInt++;
+				lPlank_yInt+= (speedMultiplier);
 			}
 			if (is_key_going_down(key('S')))
 			{
-				lPlank_yInt--;
+				lPlank_yInt-= (speedMultiplier);
 			}
 			//
 			//
 			if (is_key_going_down(key_right))
 			{
-				rPlank_xInt++;
+				rPlank_xInt+= (speedMultiplier);
 			}
 			if (is_key_going_down(key_left))
 			{
-				rPlank_xInt--;
+				rPlank_xInt-= (speedMultiplier);
 			}
 			if (is_key_going_down(key_up))
 			{
-				rPlank_yInt++;
+				rPlank_yInt+= (speedMultiplier);
 			}
 			if (is_key_going_down(key_down))
 			{
-				rPlank_yInt--;
+				rPlank_yInt-= (speedMultiplier);
 			}
 
 

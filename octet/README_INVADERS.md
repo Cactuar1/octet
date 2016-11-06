@@ -1,17 +1,16 @@
 LINK TO YOUTUBE VIDEO:
 https://www.youtube.com/watch?v=NaGSVIhJRpQ&feature=youtu.be
 
-
 ![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/1.png)
 ![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/2.png)
 ![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/3.png)
 
 
+
+
 Introduction to Programming -- Luke Sanderson
 
 ASTEROIDS --	README
-				
-
 
 Original code by Andy Thomason, adapted into Atari's 'Asteroids' by Luke Sanderson
 
@@ -28,18 +27,18 @@ The project started as a simple version of Taito's Space Invaders, and has had c
 
 Much like the original file, the sprites of the asteroids and any objects that have more than one instance are initiliased through loops, for speed and readability. However, the randomizer function is used when initialising asteroids to ASDFASDFASDF.
 
-In order to retain the screen wrapping effect from the original Asteroids, upon colliding with an (offscreen) border object, the player's rotation was stored, it's rotation set to 0, warped to the other side and finally reset to the previous player's rotation. This was done as moving the player by the translate function would have moved it by it's local axis, rather than the world's co-ordinates. While it worked, it was unwieldy and rather ugly to look at, so in the end I managed to move each wrappable object by it's modelToWorld. For example:
+	In order to retain the screen wrapping effect from the original Asteroids, upon colliding with an (offscreen) border object, the player's rotation was stored, it's rotation set to 0, warped to the other side and finally reset to the previous player's rotation. This was done as moving the player by the translate function would have moved it by it's local axis, rather than the world's co-ordinates. While it worked, it was unwieldy and rather ugly to look at, so in the end I managed to move each wrappable object by it's modelToWorld. For example:
 
 		sprites[ship_sprite].modelToWorld[3][0] = -6;
 
 will set the ship's x co-ordinate to -6; This method's much faster as we aren't storing variables for every sprite.
 
-The large asteroids were originally going to be created from values found in a csv file, however I opted instead to create them using a simple sin and cos function:
+	The large asteroids were originally going to be created from values found in a csv file, however I opted instead to create them using a simple sin and cos function:
 
-		float pointNum = (k*0.5f) / num_big_asteroids;
-		float angle = pointNum*3.14159265;
-		float x = sin(angle * 4) * 2.5f;
-		float y = cos(angle * 4) * 2.5f;
+	float pointNum = (k*0.5f) / num_big_asteroids;
+	float angle = pointNum*3.14159265;
+	float x = sin(angle * 4) * 2.5f;
+	float y = cos(angle * 4) * 2.5f;
 
 
 
