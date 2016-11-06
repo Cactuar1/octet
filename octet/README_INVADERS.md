@@ -1,11 +1,12 @@
 LINK TO YOUTUBE VIDEO:
 https://www.youtube.com/watch?v=NaGSVIhJRpQ&feature=youtu.be
 
-![Alt text](1.PNG "Test") 
-![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/1.png)
-![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/2.png)
-![alt tag](https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/3.png)
+<p align="center">
+  <img src="https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/1.png?raw=true" width="350"/>
+  <img src="https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/2.png?raw=true" width="350"/>
+  <img src="https://github.com/LukeSanderson18/octet/tree/SpaceInvadersClone/octet/Invaderers_Pictures/3.png?raw=true" width="350"/>
 
+</p>
 
 
 
