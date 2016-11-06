@@ -337,15 +337,15 @@ namespace octet { namespace scene {
 	
 #ifdef OCTET_BULLET
 
-	void applySpring(btRigidBody *rbA, btRigidBody *rbB, btTransform tran1, btTransform tran2)
+	void shapeSpring(btRigidBody *rbA, btRigidBody *rbB, btTransform plankA, btTransform plankB)
 	{
-		btGeneric6DofSpringConstraint* spring = new btGeneric6DofSpringConstraint(*rbA, *rbB, tran1, tran2, true);
+		btGeneric6DofSpringConstraint* spring = new btGeneric6DofSpringConstraint(*rbA, *rbB, plankA, plankB, true);
 		
 		//spring->setStiffness(0, 100);
-		spring->setAngularLowerLimit(btVector3(0, 0, 0));
+		spring->setAngularLowerLimit(btVector3(0,0,0));
 		spring->setAngularUpperLimit(btVector3(0,0,0));
-		spring->setLinearLowerLimit(btVector3(0,0,0));
-		spring->setLinearUpperLimit(btVector3(0.01,0.01,0.01));
+		//spring->setLinearLowerLimit(btVector3(1,1,1));
+		//spring->setLinearUpperLimit(btVector3(0.01,0.01,0.01));
 		//spring->setDamping(0, 0.002f);
 
 		spring->enableSpring(0, true);
@@ -419,7 +419,7 @@ namespace octet { namespace scene {
         node->access_nodeToParent().translate(0, 0, distance);
         float f = distance * 2, n = f * 0.001f;
         cam->set_node(node);
-        cam->set_perspective(0, 45, 1, n, f);
+        cam->set_perspective(0, 45, 1, n, f*2);
         camera_instances.push_back(cam);
       }
 

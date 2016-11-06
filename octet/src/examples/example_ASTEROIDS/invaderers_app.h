@@ -131,6 +131,13 @@ namespace octet {
 		}
 
 		// move the object
+
+		void setPosition(float x, float y)
+		{
+			modelToWorld[3][0] = x;
+			modelToWorld[3][1] = y;
+		}
+
 		void translate(float x, float y) {
 			modelToWorld.translate(x, y, 0);
 		}
@@ -180,7 +187,6 @@ namespace octet {
 		texture_shader texture_shader_;
 
 		enum {
-			num_music_sound_source = 1,
 			num_sound_sources = 8,
 			num_missiles = 4,
 			num_bombs = 2,
@@ -405,8 +411,7 @@ namespace octet {
 			if (randUfo == 0 && !sprites[ufo_sprite].is_enabled())
 			{
 				sprite &ufo = sprites[ufo_sprite];
-				ufo.modelToWorld[3][0] = -4;
-				ufo.modelToWorld[3][1] = randomizer.get(-3.0f,3.0f);
+				ufo.setPosition(-4, randomizer.get(-3.0f, 3.0f));
 
 				ALuint source = get_sound_source();
 				alSourcei(source, AL_BUFFER, ufoAppear);
@@ -535,8 +540,7 @@ namespace octet {
 				alSourcei(source, AL_BUFFER, warp2);
 				alSourcePlay(source);
 
-				sprites[ship_sprite].modelToWorld[3][0] = randomizer.get(-3.0f, 3.0f);
-				sprites[ship_sprite].modelToWorld[3][1] = randomizer.get(-3.0f, 3.0f);
+				sprites[ship_sprite].setPosition(randomizer.get(-3.0f, 3.0f), randomizer.get(-3.0f, 3.0f));
 				sprites[ship_sprite].is_enabled() = true;
 				hyperspaceTimer = 0;
 			}
@@ -569,8 +573,7 @@ namespace octet {
 					//reset player position, essentially
 					ship_speed = 0;
 					sprites[press_start_sprite].set_relative(sprites[first_border_sprite + 3], 30, 0);
-					sprites[ship_sprite].modelToWorld[3][0] = 0;
-					sprites[ship_sprite].modelToWorld[3][1] = 0;
+					sprites[ship_sprite].setPosition(0, 0);
 					sprites[ship_sprite].is_enabled() = true;
 					deathTimer = 0;
 					dead = false;
@@ -586,28 +589,20 @@ namespace octet {
 
 					if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 0]))
 					{
-						//sprites[ship_sprite].set_relative(sprites[ship_sprite], 0, 6);
 						sprites[ship_sprite].modelToWorld[3][1] = sprites[ship_sprite].modelToWorld[3][1] + 6;
 					}
 					if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 1]))
 					{
-						//sprites[ship_sprite].set_relative(sprites[ship_sprite], 0, -6);	
 						sprites[ship_sprite].modelToWorld[3][1] = sprites[ship_sprite].modelToWorld[3][1] - 6;
-
 					}
 					if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 2]))
 					{
-						//sprites[ship_sprite].set_relative(sprites[ship_sprite], 6, 0);
 						sprites[ship_sprite].modelToWorld[3][0] = sprites[ship_sprite].modelToWorld[3][0] + 6;
-
 					}
 					if (sprites[ship_sprite].collides_with(sprites[first_border_sprite + 3]))
 					{
-						//sprites[ship_sprite].set_relative(sprites[ship_sprite], -6, 0);		
 						sprites[ship_sprite].modelToWorld[3][0] = sprites[ship_sprite].modelToWorld[3][0] - 6;
-
 					}
-					//sprites[ship_sprite].rotate(tempRotation);								//return rotation to orginial rot
 				}
 			}
 		}
@@ -914,8 +909,7 @@ namespace octet {
 						float angle = pointNum*3.14159265;
 						float x = sin(angle * 4) * 2.5f;
 						float y = cos(angle * 4) * 2.5f;
-						asteroid.modelToWorld[3][0] = x;
-						asteroid.modelToWorld[3][1] = y;
+						asteroid.setPosition(x, y);
 						asteroid.is_enabled() = true;
 					}
 					live_asteroids = num_asteroids;
@@ -967,6 +961,7 @@ namespace octet {
 					float angle = pointNum*3.14159265;
 					float x = sin(angle * 4) * 2.5f;
 					float y = cos(angle * 4) * 2.5f;
+					asteroid.setPosition(x, y);
 					asteroid.modelToWorld[3][0] = x;
 					asteroid.modelToWorld[3][1] = y;
 					asteroid.is_enabled() = true;
@@ -1152,9 +1147,6 @@ namespace octet {
 			resetCheck();
 
 			cameraShake();
-
-			
-
 
 		}
 
